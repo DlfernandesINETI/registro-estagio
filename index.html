@@ -224,6 +224,11 @@
             <option>Noite — 2024/2</option>
           </select>
         </div>
+        <div class="field" id="field-supervisor">
+          <label>E-mail do seu supervisor *</label>
+          <input type="email" id="cad-supervisor-email" placeholder="supervisor@email.com"/>
+          <div style="font-size:11px;color:#9b9b9b;margin-top:4px;">O supervisor receberá seu pedido de aprovação ao entrar no sistema.</div>
+        </div>
         <div class="field" id="field-codigo" style="display:none">
           <label>Código de acesso *</label>
           <input type="password" id="cad-codigo" placeholder="Código fornecido pela instituição"/>
@@ -455,6 +460,7 @@ function selectRole(role) {
   document.getElementById('role-supervisor').classList.toggle('active', role==='supervisor')
   document.getElementById('role-coordenador').classList.toggle('active', role==='coordenador')
   document.getElementById('field-turma').style.display = role==='estagiario' ? 'block' : 'none'
+  document.getElementById('field-supervisor').style.display = role==='estagiario' ? 'block' : 'none'
   document.getElementById('field-codigo').style.display = role==='coordenador' ? 'block' : 'none'
 }
 
@@ -483,8 +489,10 @@ async function fazerCadastro() {
   const codigo = document.getElementById('cad-codigo').value.trim().toUpperCase()
   hideAlert('cad-err'); hideAlert('cad-info')
 
+  const supervisorEmail = document.getElementById('cad-supervisor-email').value.trim()
   if (!nome || !email || !tel || !senha) { alert_('cad-err','Preencha todos os campos.'); return }
   if (roleAtual === 'estagiario' && !turma) { alert_('cad-err','Selecione sua turma.'); return }
+  if (roleAtual === 'estagiario' && !supervisorEmail) { alert_('cad-err','Informe o e-mail do seu supervisor.'); return }
   if (roleAtual === 'coordenador' && codigo !== CODIGO_COORDENADOR) {
     alert_('cad-err','Código de acesso inválido. Verifique com a coordenação.'); return
   }
@@ -500,7 +508,8 @@ async function fazerCadastro() {
     id: data.user.id, nome, email, telefone: tel,
     turma: roleAtual === 'estagiario' ? turma : null,
     perfil: roleAtual,
-    aprovado: roleAtual !== 'estagiario'
+    aprovado: roleAtual !== 'estagiario',
+    supervisor_email: roleAtual === 'estagiario' ? supervisorEmail : null
   })
 
   // Limpar formulário
@@ -508,6 +517,7 @@ async function fazerCadastro() {
   document.getElementById('cad-email').value = ''
   document.getElementById('cad-tel').value = ''
   document.getElementById('cad-turma').value = ''
+  document.getElementById('cad-supervisor-email').value = ''
   document.getElementById('cad-senha').value = ''
   document.getElementById('cad-codigo').value = ''
 
@@ -927,6 +937,7 @@ async function carregarPendentesCadastro() {
     .select('*')
     .eq('perfil', 'estagiario')
     .eq('aprovado', false)
+    .eq('supervisor_email', usuarioAtual.email)
 
   const box = document.getElementById('sup-pendentes-cadastro')
   const lista = document.getElementById('lista-pendentes-cadastro')
@@ -935,12 +946,12 @@ async function carregarPendentesCadastro() {
 
   box.style.display = 'block'
   lista.innerHTML = data.map(u => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:0.5px solid #fde68a;">
-      <div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:0.5px solid #fde68a;gap:8px;">
+      <div style="flex:1">
         <div style="font-size:13px;font-weight:500;color:#1a1a1a">${u.nome}</div>
         <div style="font-size:11px;color:#6b6b6b">${u.email} · ${u.turma || '—'}</div>
       </div>
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:6px;flex-shrink:0">
         <button class="btn btn-success" style="padding:5px 12px;font-size:12px;" onclick="aprovarCadastro('${u.id}', true)">Aprovar</button>
         <button class="btn btn-danger" style="padding:5px 12px;font-size:12px;" onclick="aprovarCadastro('${u.id}', false)">Recusar</button>
       </div>
