@@ -227,6 +227,21 @@
           <input type="email" id="cad-supervisor-email" placeholder="supervisor@email.com"/>
           <div style="font-size:11px;color:#9b9b9b;margin-top:4px;">O supervisor receberá seu pedido de aprovação ao entrar no sistema.</div>
         </div>
+        <div class="field" id="field-local">
+          <label>Local de estágio *</label>
+          <select id="cad-local">
+            <option value="">Selecione...</option>
+            <option>Escola</option>
+            <option>Academia</option>
+            <option>Clube esportivo</option>
+            <option>UBS / Saúde</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div class="field" id="field-local-outro" style="display:none">
+          <label>Qual local? *</label>
+          <input type="text" id="cad-local-outro" placeholder="Descreva o local de estágio"/>
+        </div>
         <div class="field" id="field-codigo" style="display:none">
           <label>Código de acesso *</label>
           <input type="password" id="cad-codigo" placeholder="Código fornecido pela instituição"/>
@@ -257,7 +272,10 @@
           <div class="topbar-role" id="est-turma"></div>
         </div>
       </div>
-      <button class="btn btn-ghost" onclick="sair()">Sair</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="abrirModalPerfil()">Editar perfil</button>
+        <button class="btn btn-ghost" onclick="sair()">Sair</button>
+      </div>
     </div>
     <div class="content">
       <div class="checkin-card">
@@ -294,7 +312,10 @@
           <div class="topbar-role">Supervisor</div>
         </div>
       </div>
-      <button class="btn btn-ghost" onclick="sair()">Sair</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="abrirModalPerfil()">Editar perfil</button>
+        <button class="btn btn-ghost" onclick="sair()">Sair</button>
+      </div>
     </div>
     <div class="content">
       <div class="metrics">
@@ -330,7 +351,10 @@
           <div class="topbar-role">Coordenador</div>
         </div>
       </div>
-      <button class="btn btn-ghost" onclick="sair()">Sair</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="abrirModalPerfil()">Editar perfil</button>
+        <button class="btn btn-ghost" onclick="sair()">Sair</button>
+      </div>
     </div>
     <div class="content">
       <div class="metrics">
@@ -362,6 +386,50 @@
         </div>
       </div>
       <div id="coord-lista"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar perfil -->
+<div id="modal-perfil" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:flex-start;justify-content:center;overflow-y:auto;padding:1rem;">
+  <div style="background:#fff;border-radius:12px;padding:1.75rem;width:100%;max-width:400px;margin:2rem auto;">
+    <h2 style="font-size:16px;font-weight:600;margin-bottom:1rem;">Editar perfil</h2>
+    <div class="alert alert-error" id="perfil-err"></div>
+    <div class="alert alert-success" id="perfil-ok"></div>
+    <div class="field"><label>Nome completo</label><input type="text" id="perfil-nome"/></div>
+    <div class="field"><label>Telefone</label><input type="tel" id="perfil-tel"/></div>
+    <div class="field" id="perfil-field-turma" style="display:none">
+      <label>Turma</label>
+      <select id="perfil-turma">
+        <option value="">Selecione...</option>
+        <option>Bacharelado 1</option>
+        <option>Bacharelado 2</option>
+        <option>Licenciatura 1</option>
+        <option>Licenciatura 2</option>
+      </select>
+    </div>
+    <div class="field" id="perfil-field-local" style="display:none">
+      <label>Local de estágio</label>
+      <select id="perfil-local" onchange="toggleLocalOutroPerfil()">
+        <option value="">Selecione...</option>
+        <option>Escola</option>
+        <option>Academia</option>
+        <option>Clube esportivo</option>
+        <option>UBS / Saúde</option>
+        <option>Outro</option>
+      </select>
+    </div>
+    <div class="field" id="perfil-field-local-outro" style="display:none">
+      <label>Qual local?</label>
+      <input type="text" id="perfil-local-outro" placeholder="Descreva o local"/>
+    </div>
+    <div class="field" id="perfil-field-supervisor" style="display:none">
+      <label>E-mail do supervisor</label>
+      <input type="email" id="perfil-supervisor-email"/>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:.5rem;">
+      <button class="btn btn-ghost" style="flex:1" onclick="fecharModalPerfil()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="salvarPerfil()" id="btn-salvar-perfil">Salvar</button>
     </div>
   </div>
 </div>
@@ -459,6 +527,8 @@ function selectRole(role) {
   document.getElementById('role-coordenador').classList.toggle('active', role==='coordenador')
   document.getElementById('field-turma').style.display = role==='estagiario' ? 'block' : 'none'
   document.getElementById('field-supervisor').style.display = role==='estagiario' ? 'block' : 'none'
+  document.getElementById('field-local').style.display = role==='estagiario' ? 'block' : 'none'
+  document.getElementById('field-local-outro').style.display = 'none'
   document.getElementById('field-codigo').style.display = role==='coordenador' ? 'block' : 'none'
 }
 
@@ -490,7 +560,12 @@ async function fazerCadastro() {
   const supervisorEmail = document.getElementById('cad-supervisor-email').value.trim()
   if (!nome || !email || !tel || !senha) { alert_('cad-err','Preencha todos os campos.'); return }
   if (roleAtual === 'estagiario' && !turma) { alert_('cad-err','Selecione sua turma.'); return }
+  const localSel = document.getElementById('cad-local').value
+  const localOutro = document.getElementById('cad-local-outro').value.trim()
+  const localEstagio = localSel === 'Outro' ? localOutro : localSel
   if (roleAtual === 'estagiario' && !supervisorEmail) { alert_('cad-err','Informe o e-mail do seu supervisor.'); return }
+  if (roleAtual === 'estagiario' && !localSel) { alert_('cad-err','Selecione o local de estágio.'); return }
+  if (roleAtual === 'estagiario' && localSel === 'Outro' && !localOutro) { alert_('cad-err','Descreva o local de estágio.'); return }
   if (roleAtual === 'coordenador' && codigo !== CODIGO_COORDENADOR) {
     alert_('cad-err','Código de acesso inválido. Verifique com a coordenação.'); return
   }
@@ -507,7 +582,8 @@ async function fazerCadastro() {
     turma: roleAtual === 'estagiario' ? turma : null,
     perfil: roleAtual,
     aprovado: roleAtual !== 'estagiario',
-    supervisor_email: roleAtual === 'estagiario' ? supervisorEmail : null
+    supervisor_email: roleAtual === 'estagiario' ? supervisorEmail : null,
+    local_estagio: roleAtual === 'estagiario' ? localEstagio : null
   })
 
   // Limpar formulário
@@ -516,6 +592,9 @@ async function fazerCadastro() {
   document.getElementById('cad-tel').value = ''
   document.getElementById('cad-turma').value = ''
   document.getElementById('cad-supervisor-email').value = ''
+  document.getElementById('cad-local').value = ''
+  document.getElementById('cad-local-outro').value = ''
+  document.getElementById('field-local-outro').style.display = 'none'
   document.getElementById('cad-senha').value = ''
   document.getElementById('cad-codigo').value = ''
 
@@ -882,6 +961,90 @@ function exportarPDF() {
 
   doc.save('relatorio-estagio.pdf')
   toast('PDF baixado com sucesso!')
+}
+
+// ═══════════════════════════════════════════
+// LOCAL DE ESTÁGIO — campo outro
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const selLocal = document.getElementById('cad-local')
+  if (selLocal) selLocal.addEventListener('change', () => {
+    document.getElementById('field-local-outro').style.display =
+      selLocal.value === 'Outro' ? 'block' : 'none'
+  })
+})
+
+function toggleLocalOutroPerfil() {
+  const v = document.getElementById('perfil-local').value
+  document.getElementById('perfil-field-local-outro').style.display = v === 'Outro' ? 'block' : 'none'
+}
+
+// ═══════════════════════════════════════════
+// EDITAR PERFIL
+// ═══════════════════════════════════════════
+function abrirModalPerfil() {
+  document.getElementById('perfil-err').className = 'alert'
+  document.getElementById('perfil-ok').className = 'alert'
+  document.getElementById('perfil-nome').value = usuarioAtual.nome || ''
+  document.getElementById('perfil-tel').value = usuarioAtual.telefone || ''
+
+  const isEst = usuarioAtual.perfil === 'estagiario'
+  document.getElementById('perfil-field-turma').style.display = isEst ? 'block' : 'none'
+  document.getElementById('perfil-field-local').style.display = isEst ? 'block' : 'none'
+  document.getElementById('perfil-field-supervisor').style.display = isEst ? 'block' : 'none'
+
+  if (isEst) {
+    document.getElementById('perfil-turma').value = usuarioAtual.turma || ''
+    document.getElementById('perfil-local').value = usuarioAtual.local_estagio || ''
+    document.getElementById('perfil-supervisor-email').value = usuarioAtual.supervisor_email || ''
+    toggleLocalOutroPerfil()
+  }
+
+  document.getElementById('modal-perfil').style.display = 'flex'
+}
+
+function fecharModalPerfil() {
+  document.getElementById('modal-perfil').style.display = 'none'
+}
+
+async function salvarPerfil() {
+  const nome = document.getElementById('perfil-nome').value.trim()
+  const tel = document.getElementById('perfil-tel').value.trim()
+  document.getElementById('perfil-err').className = 'alert'
+  document.getElementById('perfil-ok').className = 'alert'
+
+  if (!nome) {
+    document.getElementById('perfil-err').textContent = 'O nome não pode ficar vazio.'
+    document.getElementById('perfil-err').className = 'alert alert-error show'
+    return
+  }
+
+  const btn = document.getElementById('btn-salvar-perfil')
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
+
+  const updates = { nome, telefone: tel }
+
+  if (usuarioAtual.perfil === 'estagiario') {
+    const localSel = document.getElementById('perfil-local').value
+    const localOutro = document.getElementById('perfil-local-outro').value.trim()
+    updates.turma = document.getElementById('perfil-turma').value
+    updates.local_estagio = localSel === 'Outro' ? localOutro : localSel
+    updates.supervisor_email = document.getElementById('perfil-supervisor-email').value.trim()
+  }
+
+  const { error } = await sb.from('usuarios').update(updates).eq('id', usuarioAtual.id)
+
+  if (error) {
+    document.getElementById('perfil-err').textContent = 'Erro ao salvar. Tente novamente.'
+    document.getElementById('perfil-err').className = 'alert alert-error show'
+  } else {
+    Object.assign(usuarioAtual, updates)
+    document.getElementById('perfil-ok').textContent = 'Perfil atualizado com sucesso!'
+    document.getElementById('perfil-ok').className = 'alert alert-success show'
+    setTimeout(() => fecharModalPerfil(), 1500)
+    toast('Perfil atualizado!')
+  }
+  btn.textContent = 'Salvar'; btn.disabled = false
 }
 
 // ═══════════════════════════════════════════
