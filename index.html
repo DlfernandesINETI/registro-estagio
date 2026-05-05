@@ -484,13 +484,25 @@ async function fazerCadastro() {
     aprovado: roleAtual !== 'estagiario'
   })
 
+  // Limpar formulário
+  document.getElementById('cad-nome').value = ''
+  document.getElementById('cad-email').value = ''
+  document.getElementById('cad-tel').value = ''
+  document.getElementById('cad-turma').value = ''
+  document.getElementById('cad-senha').value = ''
+  document.getElementById('cad-codigo').value = ''
+
   if (roleAtual === 'estagiario') {
     alert_('cad-info','Cadastro realizado! Aguarde aprovação do supervisor para acessar o sistema.','info')
   } else if (roleAtual === 'coordenador') {
-    alert_('cad-info','Conta de coordenador criada! Faça login para continuar.','success')
+    alert_('cad-info','Conta de coordenador criada com sucesso!','success')
   } else {
-    alert_('cad-info','Conta criada com sucesso! Faça login para continuar.','success')
+    alert_('cad-info','Conta criada com sucesso!','success')
   }
+
+  // Redirecionar para login após 2 segundos
+  setTimeout(() => switchTab('login'), 2000)
+
   btn.textContent = 'Criar conta'; btn.disabled = false
 }
 
