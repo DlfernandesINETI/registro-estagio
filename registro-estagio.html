@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Registro de Estágio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --border: #e5e5e3;
+    --text: #1a1a1a;
+    --text2: #6b6b6b;
+    --text3: #9b9b9b;
+    --blue: #1a6ef5;
+    --blue-bg: #eff4ff;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --radius: 10px;
+    --radius-sm: 7px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+  /* ── Layout ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .page-center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; width: 100%; max-width: 400px; }
+  .app-layout { display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.25rem; display: flex; align-items: center; justify-content: space-between; height: 54px; position: sticky; top: 0; z-index: 10; }
+  .content { padding: 1.25rem; max-width: 600px; margin: 0 auto; width: 100%; }
+
+  /* ── Typography ── */
+  h1 { font-size: 18px; font-weight: 600; }
+  h2 { font-size: 15px; font-weight: 600; margin-bottom: .75rem; }
+  .muted { color: var(--text2); font-size: 13px; }
+  .tiny { color: var(--text3); font-size: 12px; }
+
+  /* ── Logo ── */
+  .logo-wrap { text-align: center; margin-bottom: 1.75rem; }
+  .logo-circle { width: 54px; height: 54px; border-radius: 50%; background: var(--blue-bg); display: flex; align-items: center; justify-content: center; margin: 0 auto .75rem; }
+  .logo-circle svg { width: 26px; height: 26px; stroke: var(--blue); }
+
+  /* ── Tabs ── */
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1.5rem; }
+  .tab { padding: 8px; font-size: 13px; font-weight: 500; text-align: center; cursor: pointer; background: var(--bg); border: none; color: var(--text2); transition: background .15s; }
+  .tab.active { background: var(--surface); color: var(--text); }
+
+  /* ── Forms ── */
+  .field { margin-bottom: .875rem; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 5px; }
+  .field input, .field select { width: 100%; padding: 9px 12px; font-size: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); transition: border .15s; }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--blue); background: #fff; }
+  .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: .875rem; }
+  .role-btn { padding: 10px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; color: var(--text2); background: var(--bg); cursor: pointer; text-align: center; }
+  .role-btn.active { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+  .forgot { text-align: right; font-size: 12px; color: var(--blue); margin-top: -6px; margin-bottom: .875rem; cursor: pointer; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: opacity .15s; }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--text); color: #fff; width: 100%; }
+  .btn-success { background: var(--green-bg); color: var(--green); border-color: #bbf7d0; flex: 1; }
+  .btn-danger { background: var(--red-bg); color: var(--red); border-color: #fecaca; flex: 1; }
+  .btn-warning { background: var(--amber-bg); color: var(--amber); border-color: #fde68a; }
+  .btn-ghost { background: none; border-color: var(--border); color: var(--text2); font-size: 13px; padding: 6px 12px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  .btn-full { width: 100%; }
+  .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── Alerts ── */
+  .alert { padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: .875rem; display: none; }
+  .alert.show { display: block; }
+  .alert-error { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+  .alert-info { background: var(--blue-bg); color: var(--blue); border: 1px solid #bfdbfe; }
+  .alert-success { background: var(--green-bg); color: var(--green); border: 1px solid #bbf7d0; }
+  .alert-warning { background: var(--amber-bg); color: var(--amber); border: 1px solid #fde68a; }
+
+  /* ── Avatar ── */
+  .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .avatar-blue { background: var(--blue-bg); color: var(--blue); }
+  .avatar-green { background: var(--green-bg); color: var(--green); }
+  .avatar-amber { background: var(--amber-bg); color: var(--amber); }
+
+  /* ── Topbar ── */
+  .topbar-info { display: flex; align-items: center; gap: 10px; }
+  .topbar-name { font-size: 14px; font-weight: 500; }
+  .topbar-role { font-size: 11px; color: var(--text2); }
+
+  /* ── Metrics ── */
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.25rem; }
+  .metric { background: var(--bg); border-radius: var(--radius-sm); padding: .75rem; text-align: center; }
+  .metric-val { font-size: 22px; font-weight: 600; }
+  .metric-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* ── Check-in card ── */
+  .checkin-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; text-align: center; }
+  .clock { font-size: 38px; font-weight: 300; letter-spacing: 3px; color: var(--text); }
+  .date-str { font-size: 13px; color: var(--text2); margin: 4px 0 1.25rem; }
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 500; margin-bottom: 1.25rem; }
+  .status-pill.out { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
+  .status-pill.in { background: var(--green-bg); color: var(--green); border: 1px solid #bbf7d0; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot-gray { background: var(--text3); }
+  .dot-green { background: var(--green); }
+  .timer { font-size: 13px; color: var(--text2); margin-bottom: 1.25rem; }
+  .timer span { font-weight: 600; color: var(--green); font-size: 16px; }
+
+  /* ── Cards de registro ── */
+  .section-title { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: .75rem; }
+  .reg-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .875rem 1rem; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .reg-date { font-size: 13px; font-weight: 500; }
+  .reg-time { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .reg-hours { font-size: 14px; font-weight: 600; text-align: right; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; display: inline-block; margin-top: 3px; }
+  .pill-green { background: var(--green-bg); color: var(--green); }
+  .pill-amber { background: var(--amber-bg); color: var(--amber); }
+  .pill-red { background: var(--red-bg); color: var(--red); }
+  .pill-gray { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
+
+  /* ── Supervisor ── */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-btn { padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--bg); color: var(--text2); cursor: pointer; }
+  .filter-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .aluno-group { margin-bottom: 1rem; }
+  .aluno-header { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .75rem 1rem; margin-bottom: 6px; }
+  .aluno-nome { font-size: 13px; font-weight: 500; }
+  .aluno-sub { font-size: 11px; color: var(--text2); }
+  .reg-detail { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .875rem 1rem; margin-bottom: 6px; margin-left: 14px; }
+  .reg-top { display: flex; justify-content: space-between; margin-bottom: 8px; }
+
+  /* ── Coordenador ── */
+  .filter-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .aluno-card-coord { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+  .aluno-card-header { display: flex; align-items: center; gap: 10px; padding: .875rem 1rem; border-bottom: 1px solid var(--border); }
+  .total-right { text-align: right; }
+  .total-h { font-size: 16px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 6px 1rem; text-align: left; color: var(--text3); font-weight: 500; background: var(--bg); border-bottom: 1px solid var(--border); }
+  td { padding: 7px 1rem; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; padding: 8px 20px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+
+  /* ── Loading ── */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-center { text-align: center; padding: 2rem; color: var(--text2); }
+  .empty { text-align: center; padding: 2rem 0; color: var(--text3); font-size: 13px; }
+
+  @media (max-width: 480px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .filter-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     TELA: LOGIN / CADASTRO
+═══════════════════════════════════════════ -->
+<div id="screen-auth" class="screen active">
+  <div class="page-center">
+    <div class="card">
+      <div class="logo-wrap">
+        <div class="logo-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h1>Registro de Estágio</h1>
+        <p class="muted" style="margin-top:4px">Educação Física — Escola</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('login')">Entrar</button>
+        <button class="tab" onclick="switchTab('cadastro')">Cadastrar</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="form-login">
+        <div class="alert alert-error" id="login-err"></div>
+        <div class="field"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com"/></div>
+        <div class="field"><label>Senha</label><input type="password" id="login-senha" placeholder="••••••••"/></div>
+        <div class="forgot">Esqueci minha senha</div>
+        <button class="btn btn-primary" onclick="fazerLogin()" id="btn-login">Entrar</button>
+      </div>
+
+      <!-- CADASTRO -->
+      <div id="form-cadastro" style="display:none">
+        <div class="alert alert-error" id="cad-err"></div>
+        <div class="alert alert-info" id="cad-info"></div>
+        <p class="tiny" style="margin-bottom:.5rem;font-weight:500">Você é:</p>
+        <div class="role-grid">
+          <button class="role-btn active" id="role-estagiario" onclick="selectRole('estagiario')">Estagiário</button>
+          <button class="role-btn" id="role-supervisor" onclick="selectRole('supervisor')">Supervisor</button>
+        </div>
+        <div class="field"><label>Nome completo *</label><input type="text" id="cad-nome" placeholder="Seu nome completo"/></div>
+        <div class="field"><label>E-mail *</label><input type="email" id="cad-email" placeholder="seu@email.com"/></div>
+        <div class="field"><label>Telefone *</label><input type="tel" id="cad-tel" placeholder="(11) 99999-9999"/></div>
+        <div class="field" id="field-turma">
+          <label>Turma / turno *</label>
+          <select id="cad-turma">
+            <option value="">Selecione...</option>
+            <option>Manhã — 2024/1</option>
+            <option>Tarde — 2024/1</option>
+            <option>Noite — 2024/1</option>
+            <option>Manhã — 2024/2</option>
+            <option>Tarde — 2024/2</option>
+            <option>Noite — 2024/2</option>
+          </select>
+        </div>
+        <div class="field"><label>Senha *</label><input type="password" id="cad-senha" placeholder="Mínimo 6 caracteres"/></div>
+        <button class="btn btn-primary" onclick="fazerCadastro()" id="btn-cad">Criar conta</button>
+      </div>
+
+      <p class="tiny" style="text-align:center;margin-top:1.25rem">Problemas de acesso? Fale com a coordenação.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TELA: ESTAGIÁRIO
+═══════════════════════════════════════════ -->
+<div id="screen-estagiario" class="screen">
+  <div class="app-layout">
+    <div class="topbar">
+      <div class="topbar-info">
+        <div class="avatar avatar-blue" id="est-avatar"></div>
+        <div>
+          <div class="topbar-name" id="est-nome"></div>
+          <div class="topbar-role" id="est-turma"></div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="sair()">Sair</button>
+    </div>
+    <div class="content">
+      <div class="checkin-card">
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="date-str" id="date-str"></div>
+        <div class="status-pill out" id="status-pill">
+          <span class="dot dot-gray" id="status-dot"></span>
+          <span id="status-txt">Fora do estágio</span>
+        </div>
+        <div class="timer" id="timer-row" style="display:none">Em andamento há <span id="timer-val">00:00</span></div>
+        <button class="btn btn-primary" id="btn-checkin" onclick="toggleCheckin()">Registrar entrada</button>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" id="est-total">0h</div><div class="metric-label">No mês</div></div>
+        <div class="metric"><div class="metric-val" id="est-aprov">0h</div><div class="metric-label">Aprovadas</div></div>
+        <div class="metric"><div class="metric-val" id="est-pend">0</div><div class="metric-label">Pendentes</div></div>
+      </div>
+      <div class="section-title">Registros recentes</div>
+      <div id="est-lista"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TELA: SUPERVISOR
+═══════════════════════════════════════════ -->
+<div id="screen-supervisor" class="screen">
+  <div class="app-layout">
+    <div class="topbar">
+      <div class="topbar-info">
+        <div class="avatar avatar-green" id="sup-avatar"></div>
+        <div>
+          <div class="topbar-name" id="sup-nome"></div>
+          <div class="topbar-role">Supervisor</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="sair()">Sair</button>
+    </div>
+    <div class="content">
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" id="sup-alunos">0</div><div class="metric-label">Estagiários</div></div>
+        <div class="metric"><div class="metric-val" id="sup-pend">0</div><div class="metric-label">Pendentes</div></div>
+        <div class="metric"><div class="metric-val" id="sup-hoje">0</div><div class="metric-label">Validados hoje</div></div>
+      </div>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFiltroSup('pendente',this)">Pendentes</button>
+        <button class="filter-btn" onclick="setFiltroSup('aprovado',this)">Aprovados</button>
+        <button class="filter-btn" onclick="setFiltroSup('reprovado',this)">Reprovados</button>
+        <button class="filter-btn" onclick="setFiltroSup('todos',this)">Todos</button>
+      </div>
+      <div id="sup-lista"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TELA: COORDENADOR
+═══════════════════════════════════════════ -->
+<div id="screen-coordenador" class="screen">
+  <div class="app-layout">
+    <div class="topbar">
+      <div class="topbar-info">
+        <div class="avatar avatar-amber" id="coord-avatar"></div>
+        <div>
+          <div class="topbar-name" id="coord-nome"></div>
+          <div class="topbar-role">Coordenador</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="sair()">Sair</button>
+    </div>
+    <div class="content">
+      <div class="metrics">
+        <div class="metric"><div class="metric-val" id="coord-alunos">0</div><div class="metric-label">Estagiários</div></div>
+        <div class="metric"><div class="metric-val" id="coord-horas">0h</div><div class="metric-label">Total horas</div></div>
+        <div class="metric"><div class="metric-val" id="coord-pend">0</div><div class="metric-label">Pendentes</div></div>
+      </div>
+      <div class="filter-card">
+        <h2>Filtrar relatório</h2>
+        <div class="filter-grid">
+          <div class="field"><label>Aluno</label>
+            <select id="coord-f-aluno"><option value="">Todos os alunos</option></select>
+          </div>
+          <div class="field"><label>Status</label>
+            <select id="coord-f-status">
+              <option value="">Todos</option>
+              <option value="aprovado">Aprovados</option>
+              <option value="pendente">Pendentes</option>
+              <option value="reprovado">Reprovados</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-full" onclick="carregarCoord()">Aplicar filtro</button>
+          <button class="btn btn-danger" onclick="exportarPDF()" style="flex:0 0 auto;white-space:nowrap">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            PDF
+          </button>
+        </div>
+      </div>
+      <div id="coord-lista"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast global -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIGURAÇÃO SUPABASE
+// ═══════════════════════════════════════════
+const SUPA_URL = 'https://ztehiimuuxpvnmtaqxgl.supabase.co'
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0ZWhpaW11dXhwdm5tdGFxeGdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTg5ODEsImV4cCI6MjA5MzU3NDk4MX0.Cyb5R9-tIi4RFePAQ4j1HVIPfyEMXqH3Vjw9-8Ihv4Q'
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY)
+
+// ═══════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════
+let usuarioAtual = null
+let emEstagio = false
+let entradaTime = null
+let timerInterval = null
+let clockInterval = null
+let filtroSup = 'pendente'
+let validadosHoje = 0
+let registrosSup = []
+let alunosSup = []
+let registrosCoord = []
+let alunosCoord = []
+
+// ═══════════════════════════════════════════
+// UTILITÁRIOS
+// ═══════════════════════════════════════════
+function pad(n) { return String(n).padStart(2, '0') }
+function iniciais(nome) { return nome.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() }
+function toast(msg) {
+  const t = document.getElementById('toast')
+  t.textContent = msg; t.classList.add('show')
+  setTimeout(() => t.classList.remove('show'), 2500)
+}
+function mostrarTela(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+  document.getElementById('screen-' + id).classList.add('active')
+}
+function alert_(id, msg, tipo='error') {
+  const el = document.getElementById(id)
+  el.textContent = msg
+  el.className = `alert alert-${tipo} show`
+}
+function hideAlert(id) { document.getElementById(id).className = 'alert' }
+
+function minToHStr(min) {
+  const h = Math.floor(min / 60), m = min % 60
+  return m > 0 ? `${h}h${pad(m)}` : `${h}h`
+}
+function statusPill(status) {
+  const map = { aprovado: ['pill-green','Aprovado'], pendente: ['pill-amber','Pendente'], reprovado: ['pill-red','Reprovado'] }
+  const [cls, txt] = map[status] || ['pill-gray', status]
+  return `<span class="pill ${cls}">${txt}</span>`
+}
+
+// ═══════════════════════════════════════════
+// AUTH — LOGIN / CADASTRO / SAÍDA
+// ═══════════════════════════════════════════
+let roleAtual = 'estagiario'
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='cadastro'&&i===1)))
+  document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none'
+  document.getElementById('form-cadastro').style.display = tab === 'cadastro' ? 'block' : 'none'
+  hideAlert('login-err'); hideAlert('cad-err'); hideAlert('cad-info')
+}
+
+function selectRole(role) {
+  roleAtual = role
+  document.getElementById('role-estagiario').classList.toggle('active', role==='estagiario')
+  document.getElementById('role-supervisor').classList.toggle('active', role==='supervisor')
+  document.getElementById('field-turma').style.display = role==='estagiario' ? 'block' : 'none'
+}
+
+async function fazerLogin() {
+  const email = document.getElementById('login-email').value.trim()
+  const senha = document.getElementById('login-senha').value
+  hideAlert('login-err')
+  if (!email || !senha) { alert_('login-err','Preencha e-mail e senha.'); return }
+
+  const btn = document.getElementById('btn-login')
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: senha })
+  if (error) { alert_('login-err', 'E-mail ou senha incorretos.'); btn.textContent='Entrar'; btn.disabled=false; return }
+
+  await carregarUsuario(data.user.id)
+  btn.textContent = 'Entrar'; btn.disabled = false
+}
+
+async function fazerCadastro() {
+  const nome = document.getElementById('cad-nome').value.trim()
+  const email = document.getElementById('cad-email').value.trim()
+  const tel = document.getElementById('cad-tel').value.trim()
+  const turma = document.getElementById('cad-turma').value
+  const senha = document.getElementById('cad-senha').value
+  hideAlert('cad-err'); hideAlert('cad-info')
+
+  if (!nome || !email || !tel || !senha) { alert_('cad-err','Preencha todos os campos.'); return }
+  if (roleAtual === 'estagiario' && !turma) { alert_('cad-err','Selecione sua turma.'); return }
+  if (senha.length < 6) { alert_('cad-err','A senha deve ter pelo menos 6 caracteres.'); return }
+
+  const btn = document.getElementById('btn-cad')
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
+
+  const { data, error } = await sb.auth.signUp({ email, password: senha })
+  if (error) { alert_('cad-err', error.message); btn.textContent='Criar conta'; btn.disabled=false; return }
+
+  await sb.from('usuarios').insert({
+    id: data.user.id, nome, email, telefone: tel,
+    turma: roleAtual === 'estagiario' ? turma : null,
+    perfil: roleAtual,
+    aprovado: roleAtual !== 'estagiario'
+  })
+
+  if (roleAtual === 'estagiario') {
+    alert_('cad-info','Cadastro realizado! Aguarde aprovação do supervisor para acessar o sistema.','info')
+  } else {
+    alert_('cad-info','Conta criada com sucesso! Faça login para continuar.','success')
+  }
+  btn.textContent = 'Criar conta'; btn.disabled = false
+}
+
+async function carregarUsuario(uid) {
+  const { data } = await sb.from('usuarios').select('*').eq('id', uid).single()
+  if (!data) { toast('Usuário não encontrado.'); await sb.auth.signOut(); return }
+  if (!data.aprovado && data.perfil === 'estagiario') {
+    toast('Sua conta ainda aguarda aprovação do supervisor.')
+    await sb.auth.signOut(); return
+  }
+  usuarioAtual = data
+  iniciarTela()
+}
+
+async function sair() {
+  clearInterval(clockInterval); clearInterval(timerInterval)
+  emEstagio = false; entradaTime = null; usuarioAtual = null
+  await sb.auth.signOut()
+  mostrarTela('auth')
+}
+
+function iniciarTela() {
+  if (usuarioAtual.perfil === 'estagiario') iniciarEstagiario()
+  else if (usuarioAtual.perfil === 'supervisor') iniciarSupervisor()
+  else iniciarCoordenador()
+}
+
+// ═══════════════════════════════════════════
+// TELA: ESTAGIÁRIO
+// ═══════════════════════════════════════════
+function iniciarEstagiario() {
+  mostrarTela('estagiario')
+  const ini = iniciais(usuarioAtual.nome)
+  document.getElementById('est-avatar').textContent = ini
+  document.getElementById('est-nome').textContent = usuarioAtual.nome
+  document.getElementById('est-turma').textContent = `Estagiário · ${usuarioAtual.turma || ''}`
+  iniciarRelogio()
+  carregarRegistrosEst()
+}
+
+function iniciarRelogio() {
+  clearInterval(clockInterval)
+  function tick() {
+    const now = new Date()
+    document.getElementById('clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+    const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+    const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+    document.getElementById('date-str').textContent = `${dias[now.getDay()]}, ${now.getDate()} de ${meses[now.getMonth()]} de ${now.getFullYear()}`
+  }
+  tick(); clockInterval = setInterval(tick, 1000)
+}
+
+async function carregarRegistrosEst() {
+  const { data } = await sb.from('registros')
+    .select('*')
+    .eq('estagiario_id', usuarioAtual.id)
+    .order('entrada', { ascending: false })
+    .limit(20)
+
+  const lista = document.getElementById('est-lista')
+  if (!data || data.length === 0) { lista.innerHTML = '<div class="empty">Nenhum registro ainda.</div>'; return }
+
+  let totalMin = 0, aprovMin = 0, pendentes = 0
+  lista.innerHTML = data.map(r => {
+    const dur = r.duracao_minutos || 0
+    totalMin += dur
+    if (r.status === 'aprovado') aprovMin += dur
+    if (r.status === 'pendente') pendentes++
+    const entrada = r.entrada ? new Date(r.entrada) : null
+    const saida = r.saida ? new Date(r.saida) : null
+    const dataStr = entrada ? entrada.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}) : '—'
+    const entStr = entrada ? `${pad(entrada.getHours())}:${pad(entrada.getMinutes())}` : '—'
+    const saiStr = saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : 'Em andamento'
+    return `<div class="reg-card">
+      <div><div class="reg-date">${dataStr}</div><div class="reg-time">${entStr} → ${saiStr}</div></div>
+      <div class="reg-hours">${dur ? minToHStr(dur) : '—'}${statusPill(r.status)}</div>
+    </div>`
+  }).join('')
+
+  document.getElementById('est-total').textContent = minToHStr(totalMin)
+  document.getElementById('est-aprov').textContent = minToHStr(aprovMin)
+  document.getElementById('est-pend').textContent = pendentes
+}
+
+async function toggleCheckin() {
+  const btn = document.getElementById('btn-checkin')
+  btn.disabled = true
+
+  if (!emEstagio) {
+    // CHECK-IN
+    const { data, error } = await sb.from('registros').insert({
+      estagiario_id: usuarioAtual.id,
+      data: new Date().toISOString().split('T')[0],
+      entrada: new Date().toISOString(),
+      status: 'pendente'
+    }).select().single()
+
+    if (error) { toast('Erro ao registrar entrada.'); btn.disabled=false; return }
+    emEstagio = true
+    entradaTime = Date.now()
+    window._registroAtualId = data.id
+
+    document.getElementById('status-pill').className = 'status-pill in'
+    document.getElementById('status-dot').className = 'dot dot-green'
+    document.getElementById('status-txt').textContent = 'Em estágio'
+    document.getElementById('timer-row').style.display = 'block'
+    btn.textContent = 'Registrar saída'
+    btn.className = 'btn btn-danger btn-full'
+
+    timerInterval = setInterval(() => {
+      const diff = Math.floor((Date.now() - entradaTime) / 1000)
+      document.getElementById('timer-val').textContent = `${pad(Math.floor(diff/3600))}:${pad(Math.floor((diff%3600)/60))}`
+    }, 1000)
+
+  } else {
+    // CHECK-OUT
+    clearInterval(timerInterval)
+    await sb.from('registros').update({ saida: new Date().toISOString() }).eq('id', window._registroAtualId)
+
+    emEstagio = false; entradaTime = null
+    document.getElementById('status-pill').className = 'status-pill out'
+    document.getElementById('status-dot').className = 'dot dot-gray'
+    document.getElementById('status-txt').textContent = 'Fora do estágio'
+    document.getElementById('timer-row').style.display = 'none'
+    btn.textContent = 'Registrar entrada'
+    btn.className = 'btn btn-primary'
+    toast('Saída registrada com sucesso!')
+    carregarRegistrosEst()
+  }
+  btn.disabled = false
+}
+
+// ═══════════════════════════════════════════
+// TELA: SUPERVISOR
+// ═══════════════════════════════════════════
+async function iniciarSupervisor() {
+  mostrarTela('supervisor')
+  document.getElementById('sup-avatar').textContent = iniciais(usuarioAtual.nome)
+  document.getElementById('sup-nome').textContent = usuarioAtual.nome
+  validadosHoje = 0
+  await carregarSupervisor()
+}
+
+async function carregarSupervisor() {
+  const lista = document.getElementById('sup-lista')
+  lista.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>'
+
+  const { data: regs } = await sb.from('registros')
+    .select('*, usuarios!registros_estagiario_id_fkey(nome, turma)')
+    .order('entrada', { ascending: false })
+
+  if (!regs) { lista.innerHTML = '<div class="empty">Nenhum registro.</div>'; return }
+
+  registrosSup = regs
+  const ids = [...new Set(regs.map(r => r.estagiario_id))]
+  alunosSup = ids.map(id => {
+    const r = regs.find(x => x.estagiario_id === id)
+    return { id, nome: r.usuarios?.nome || 'Sem nome', turma: r.usuarios?.turma || '' }
+  })
+
+  document.getElementById('sup-alunos').textContent = ids.length
+  document.getElementById('sup-pend').textContent = regs.filter(r => r.status === 'pendente').length
+  document.getElementById('sup-hoje').textContent = validadosHoje
+  renderSupervisor()
+}
+
+function setFiltroSup(f, el) {
+  filtroSup = f
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+  el.classList.add('active')
+  renderSupervisor()
+}
+
+function renderSupervisor() {
+  const lista = document.getElementById('sup-lista')
+  const regsFiltrados = filtroSup === 'todos' ? registrosSup : registrosSup.filter(r => r.status === filtroSup)
+
+  if (!alunosSup.length) { lista.innerHTML = '<div class="empty">Nenhum estagiário ainda.</div>'; return }
+
+  let html = ''
+  alunosSup.forEach(aluno => {
+    const regsAluno = regsFiltrados.filter(r => r.estagiario_id === aluno.id)
+    if (!regsAluno.length) return
+    const pendCount = regsAluno.filter(r => r.status === 'pendente').length
+    html += `<div class="aluno-group">
+      <div class="aluno-header">
+        <div class="avatar avatar-blue">${iniciais(aluno.nome)}</div>
+        <div style="flex:1"><div class="aluno-nome">${aluno.nome}</div><div class="aluno-sub">${aluno.turma}</div></div>
+        ${pendCount > 0 ? `<span class="pill pill-amber">${pendCount} pendente${pendCount>1?'s':''}</span>` : ''}
+      </div>`
+
+    regsAluno.forEach(r => {
+      const entrada = r.entrada ? new Date(r.entrada) : null
+      const saida = r.saida ? new Date(r.saida) : null
+      const dataStr = entrada ? entrada.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}) : '—'
+      const entStr = entrada ? `${pad(entrada.getHours())}:${pad(entrada.getMinutes())}` : '—'
+      const saiStr = saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : '—'
+      const dur = r.duracao_minutos ? minToHStr(r.duracao_minutos) : '—'
+      html += `<div class="reg-detail">
+        <div class="reg-top">
+          <div><div class="reg-date">${dataStr}</div><div class="reg-time">${entStr} → ${saiStr}</div></div>
+          <div style="text-align:right"><div class="reg-hours">${dur}</div>${statusPill(r.status)}</div>
+        </div>
+        <div class="btn-row">`
+      if (r.status === 'pendente') {
+        html += `<button class="btn btn-success" onclick="validar('${r.id}','aprovado')">Aprovar</button>
+                 <button class="btn btn-danger" onclick="validar('${r.id}','reprovado')">Reprovar</button>`
+      } else {
+        html += `<button class="btn btn-ghost btn-full" onclick="validar('${r.id}','pendente')">Desfazer</button>`
+      }
+      html += `</div></div>`
+    })
+    html += `</div>`
+  })
+
+  lista.innerHTML = html || '<div class="empty">Nenhum registro com esse filtro.</div>'
+}
+
+async function validar(registroId, decisao) {
+  await sb.from('registros').update({ status: decisao }).eq('id', registroId)
+
+  if (decisao !== 'pendente') {
+    validadosHoje++
+    await sb.from('validacoes').insert({ registro_id: registroId, supervisor_id: usuarioAtual.id, decisao })
+  }
+
+  const r = registrosSup.find(x => x.id === registroId)
+  if (r) r.status = decisao
+  document.getElementById('sup-pend').textContent = registrosSup.filter(r => r.status === 'pendente').length
+  document.getElementById('sup-hoje').textContent = validadosHoje
+  renderSupervisor()
+  toast(decisao === 'aprovado' ? 'Registro aprovado!' : decisao === 'reprovado' ? 'Registro reprovado.' : 'Desfeito.')
+}
+
+// ═══════════════════════════════════════════
+// TELA: COORDENADOR
+// ═══════════════════════════════════════════
+async function iniciarCoordenador() {
+  mostrarTela('coordenador')
+  document.getElementById('coord-avatar').textContent = iniciais(usuarioAtual.nome)
+  document.getElementById('coord-nome').textContent = usuarioAtual.nome
+  await carregarCoord()
+}
+
+async function carregarCoord() {
+  const lista = document.getElementById('coord-lista')
+  lista.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>'
+
+  const fAluno = document.getElementById('coord-f-aluno').value
+  const fStatus = document.getElementById('coord-f-status').value
+
+  let q = sb.from('registros').select('*, usuarios!registros_estagiario_id_fkey(id,nome,turma,perfil)').order('entrada', { ascending: false })
+  if (fAluno) q = q.eq('estagiario_id', fAluno)
+  if (fStatus) q = q.eq('status', fStatus)
+
+  const { data: regs } = await q
+  if (!regs) { lista.innerHTML = '<div class="empty">Nenhum registro.</div>'; return }
+
+  registrosCoord = regs
+  const estagiarios = regs.filter(r => r.usuarios?.perfil === 'estagiario')
+  const ids = [...new Set(estagiarios.map(r => r.estagiario_id))]
+  alunosCoord = ids.map(id => {
+    const r = regs.find(x => x.estagiario_id === id)
+    return { id, nome: r.usuarios?.nome || '—', turma: r.usuarios?.turma || '—' }
+  })
+
+  // preencher select de alunos
+  const sel = document.getElementById('coord-f-aluno')
+  const valAtual = sel.value
+  sel.innerHTML = '<option value="">Todos os alunos</option>'
+  alunosCoord.forEach(a => sel.innerHTML += `<option value="${a.id}">${a.nome}</option>`)
+  sel.value = valAtual
+
+  const totalMin = regs.reduce((s, r) => s + (r.duracao_minutos || 0), 0)
+  document.getElementById('coord-alunos').textContent = ids.length
+  document.getElementById('coord-horas').textContent = minToHStr(totalMin)
+  document.getElementById('coord-pend').textContent = regs.filter(r => r.status === 'pendente').length
+
+  let html = ''
+  alunosCoord.forEach(aluno => {
+    const regsAluno = regs.filter(r => r.estagiario_id === aluno.id)
+    const aprovMin = regsAluno.filter(r => r.status === 'aprovado').reduce((s,r) => s+(r.duracao_minutos||0), 0)
+    html += `<div class="aluno-card-coord">
+      <div class="aluno-card-header">
+        <div class="avatar avatar-blue">${iniciais(aluno.nome)}</div>
+        <div style="flex:1"><div class="aluno-nome">${aluno.nome}</div><div class="aluno-sub">${aluno.turma}</div></div>
+        <div class="total-right"><div class="total-h">${minToHStr(aprovMin)}</div><div class="tiny">aprovadas</div></div>
+      </div>
+      <table><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Duração</th><th>Status</th></tr></thead><tbody>`
+    regsAluno.forEach(r => {
+      const entrada = r.entrada ? new Date(r.entrada) : null
+      const saida = r.saida ? new Date(r.saida) : null
+      html += `<tr>
+        <td>${entrada ? entrada.toLocaleDateString('pt-BR') : '—'}</td>
+        <td>${entrada ? `${pad(entrada.getHours())}:${pad(entrada.getMinutes())}` : '—'}</td>
+        <td>${saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : '—'}</td>
+        <td>${r.duracao_minutos ? minToHStr(r.duracao_minutos) : '—'}</td>
+        <td>${statusPill(r.status)}</td>
+      </tr>`
+    })
+    html += `</tbody></table></div>`
+  })
+
+  lista.innerHTML = html || '<div class="empty">Nenhum registro encontrado.</div>'
+}
+
+function exportarPDF() {
+  const { jsPDF } = window.jspdf
+  const doc = new jsPDF()
+  let y = 18
+
+  doc.setFontSize(14); doc.setFont('helvetica','bold')
+  doc.text('Relatório de Estágio — Educação Física', 14, y); y += 7
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(120)
+  doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} · Coordenador: ${usuarioAtual.nome}`, 14, y)
+  doc.setTextColor(0); y += 10
+
+  alunosCoord.forEach(aluno => {
+    const regsAluno = registrosCoord.filter(r => r.estagiario_id === aluno.id)
+    const aprovMin = regsAluno.filter(r => r.status === 'aprovado').reduce((s,r)=>s+(r.duracao_minutos||0),0)
+    if (y > 260) { doc.addPage(); y = 18 }
+    doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.text(aluno.nome, 14, y)
+    doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(100)
+    doc.text(`${aluno.turma} · Horas aprovadas: ${minToHStr(aprovMin)}`, 14, y+5)
+    doc.setTextColor(0); y += 13
+
+    const cols = ['Data','Entrada','Saída','Duração','Status']
+    const ws = [30,24,24,26,30]
+    doc.setFontSize(8); doc.setFont('helvetica','bold')
+    doc.setFillColor(240,240,240); doc.rect(14, y-4, 182, 6, 'F')
+    let x = 14; cols.forEach((c,i) => { doc.text(c, x+1, y); x += ws[i] }); y += 4
+    doc.setFont('helvetica','normal')
+    regsAluno.forEach(r => {
+      if (y > 270) { doc.addPage(); y = 18 }
+      const entrada = r.entrada ? new Date(r.entrada) : null
+      const saida = r.saida ? new Date(r.saida) : null
+      const row = [
+        entrada ? entrada.toLocaleDateString('pt-BR') : '—',
+        entrada ? `${pad(entrada.getHours())}:${pad(entrada.getMinutes())}` : '—',
+        saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : '—',
+        r.duracao_minutos ? minToHStr(r.duracao_minutos) : '—',
+        r.status.charAt(0).toUpperCase()+r.status.slice(1)
+      ]
+      x = 14; row.forEach((v,i) => { doc.text(String(v), x+1, y); x += ws[i] })
+      doc.setDrawColor(220); doc.line(14, y+1.5, 196, y+1.5); y += 6
+    })
+    y += 6
+  })
+
+  doc.save('relatorio-estagio.pdf')
+  toast('PDF baixado com sucesso!')
+}
+
+// ═══════════════════════════════════════════
+// INICIALIZAÇÃO — verifica sessão existente
+// ═══════════════════════════════════════════
+;(async () => {
+  const { data } = await sb.auth.getSession()
+  if (data?.session?.user) {
+    await carregarUsuario(data.session.user.id)
+  }
+})()
+</script>
+</body>
+</html>
