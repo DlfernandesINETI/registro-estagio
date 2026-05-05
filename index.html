@@ -204,9 +204,10 @@
         <div class="alert alert-error" id="cad-err"></div>
         <div class="alert alert-info" id="cad-info"></div>
         <p class="tiny" style="margin-bottom:.5rem;font-weight:500">Você é:</p>
-        <div class="role-grid">
+        <div class="role-grid" style="grid-template-columns:1fr 1fr 1fr">
           <button class="role-btn active" id="role-estagiario" onclick="selectRole('estagiario')">Estagiário</button>
           <button class="role-btn" id="role-supervisor" onclick="selectRole('supervisor')">Supervisor</button>
+          <button class="role-btn" id="role-coordenador" onclick="selectRole('coordenador')">Coordenador</button>
         </div>
         <div class="field"><label>Nome completo *</label><input type="text" id="cad-nome" placeholder="Seu nome completo"/></div>
         <div class="field"><label>E-mail *</label><input type="email" id="cad-email" placeholder="seu@email.com"/></div>
@@ -222,6 +223,14 @@
             <option>Tarde — 2024/2</option>
             <option>Noite — 2024/2</option>
           </select>
+        </div>
+        <div class="field" id="field-codigo" style="display:none">
+          <label>Código de acesso *</label>
+          <input type="password" id="cad-codigo" placeholder="Código fornecido pela instituição"/>
+        </div>
+        <div class="field" id="field-codigo" style="display:none">
+          <label>Código de acesso *</label>
+          <input type="password" id="cad-codigo" placeholder="Código fornecido pela instituição"/>
         </div>
         <div class="field"><label>Senha *</label><input type="password" id="cad-senha" placeholder="Mínimo 6 caracteres"/></div>
         <button class="btn btn-primary" onclick="fazerCadastro()" id="btn-cad">Criar conta</button>
@@ -419,11 +428,15 @@ function switchTab(tab) {
   hideAlert('login-err'); hideAlert('cad-err'); hideAlert('cad-info')
 }
 
+const CODIGO_COORDENADOR = 'EDFISICA'
+
 function selectRole(role) {
   roleAtual = role
   document.getElementById('role-estagiario').classList.toggle('active', role==='estagiario')
   document.getElementById('role-supervisor').classList.toggle('active', role==='supervisor')
+  document.getElementById('role-coordenador').classList.toggle('active', role==='coordenador')
   document.getElementById('field-turma').style.display = role==='estagiario' ? 'block' : 'none'
+  document.getElementById('field-codigo').style.display = role==='coordenador' ? 'block' : 'none'
 }
 
 async function fazerLogin() {
@@ -448,10 +461,14 @@ async function fazerCadastro() {
   const tel = document.getElementById('cad-tel').value.trim()
   const turma = document.getElementById('cad-turma').value
   const senha = document.getElementById('cad-senha').value
+  const codigo = document.getElementById('cad-codigo').value.trim().toUpperCase()
   hideAlert('cad-err'); hideAlert('cad-info')
 
   if (!nome || !email || !tel || !senha) { alert_('cad-err','Preencha todos os campos.'); return }
   if (roleAtual === 'estagiario' && !turma) { alert_('cad-err','Selecione sua turma.'); return }
+  if (roleAtual === 'coordenador' && codigo !== CODIGO_COORDENADOR) {
+    alert_('cad-err','Código de acesso inválido. Verifique com a coordenação.'); return
+  }
   if (senha.length < 6) { alert_('cad-err','A senha deve ter pelo menos 6 caracteres.'); return }
 
   const btn = document.getElementById('btn-cad')
@@ -469,6 +486,8 @@ async function fazerCadastro() {
 
   if (roleAtual === 'estagiario') {
     alert_('cad-info','Cadastro realizado! Aguarde aprovação do supervisor para acessar o sistema.','info')
+  } else if (roleAtual === 'coordenador') {
+    alert_('cad-info','Conta de coordenador criada! Faça login para continuar.','success')
   } else {
     alert_('cad-info','Conta criada com sucesso! Faça login para continuar.','success')
   }
