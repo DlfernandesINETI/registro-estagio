@@ -293,6 +293,19 @@
         <div class="metric"><div class="metric-val" id="est-aprov">0h</div><div class="metric-label">Aprovadas</div></div>
         <div class="metric"><div class="metric-val" id="est-pend">0</div><div class="metric-label">Pendentes</div></div>
       </div>
+      <div style="background:#fff;border:1px solid #e5e5e3;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:13px;font-weight:500;color:#1a1a1a">Total de horas aprovadas</span>
+          <span style="font-size:14px;font-weight:600;color:#16a34a" id="est-barra-val">0h</span>
+        </div>
+        <div style="background:#f5f5f3;border-radius:999px;height:10px;overflow:hidden;">
+          <div id="est-barra" style="height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:999px;width:0%;transition:width .6s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+          <span style="font-size:11px;color:#9b9b9b">0h</span>
+          <span style="font-size:11px;color:#9b9b9b" id="est-barra-max"></span>
+        </div>
+      </div>
       <div class="section-title">Registros recentes</div>
       <div id="est-lista"><div class="loading-center"><div class="spinner"></div></div></div>
     </div>
@@ -639,14 +652,54 @@ function iniciarTela() {
 // ═══════════════════════════════════════════
 // TELA: ESTAGIÁRIO
 // ═══════════════════════════════════════════
-function iniciarEstagiario() {
+async function iniciarEstagiario() {
   mostrarTela('estagiario')
   const ini = iniciais(usuarioAtual.nome)
   document.getElementById('est-avatar').textContent = ini
   document.getElementById('est-nome').textContent = usuarioAtual.nome
-  document.getElementById('est-turma').textContent = `Estagiário · ${usuarioAtual.turma || ''}`
+  const localStr = usuarioAtual.local_estagio ? ` · ${usuarioAtual.local_estagio}` : ''
+  document.getElementById('est-turma').textContent = `Estagiário · ${usuarioAtual.turma || ''}${localStr}`
   iniciarRelogio()
+  await verificarCheckinAberto()
   carregarRegistrosEst()
+}
+
+async function verificarCheckinAberto() {
+  // Busca se existe algum registro sem saída (check-in em aberto)
+  const { data } = await sb.from('registros')
+    .select('*')
+    .eq('estagiario_id', usuarioAtual.id)
+    .is('saida', null)
+    .order('entrada', { ascending: false })
+    .limit(1)
+
+  if (!data || data.length === 0) return
+
+  const registro = data[0]
+  const entradaDate = new Date(registro.entrada)
+
+  // Retoma o estado de check-in
+  emEstagio = true
+  entradaTime = entradaDate.getTime()
+  window._registroAtualId = registro.id
+
+  document.getElementById('status-pill').className = 'status-pill in'
+  document.getElementById('status-dot').className = 'dot dot-green'
+  document.getElementById('status-txt').textContent = 'Em estágio'
+  document.getElementById('timer-row').style.display = 'block'
+  document.getElementById('btn-checkin').textContent = 'Registrar saída'
+  document.getElementById('btn-checkin').className = 'btn btn-danger btn-full'
+
+  // Reinicia o cronômetro do ponto correto
+  clearInterval(timerInterval)
+  timerInterval = setInterval(() => {
+    const diff = Math.floor((Date.now() - entradaTime) / 1000)
+    const h = Math.floor(diff / 3600)
+    const m = Math.floor((diff % 3600) / 60)
+    document.getElementById('timer-val').textContent = `${pad(h)}:${pad(m)}`
+  }, 1000)
+
+  toast('Check-in retomado das ' + `${pad(entradaDate.getHours())}:${pad(entradaDate.getMinutes())}`)
 }
 
 function iniciarRelogio() {
@@ -691,6 +744,15 @@ async function carregarRegistrosEst() {
   document.getElementById('est-total').textContent = minToHStr(totalMin)
   document.getElementById('est-aprov').textContent = minToHStr(aprovMin)
   document.getElementById('est-pend').textContent = pendentes
+
+  // Barra de progresso dinâmica
+  const aprovH = Math.floor(aprovMin / 60)
+  document.getElementById('est-barra-val').textContent = minToHStr(aprovMin)
+  // Barra sempre mostra progresso relativo ao maior valor (aprovMin + 20% a mais)
+  const maxMin = aprovMin > 0 ? Math.ceil(aprovMin * 1.2 / 60) * 60 : 60
+  const pct = aprovMin > 0 ? Math.min((aprovMin / maxMin) * 100, 100) : 0
+  document.getElementById('est-barra').style.width = pct + '%'
+  document.getElementById('est-barra-max').textContent = minToHStr(maxMin)
 }
 
 async function toggleCheckin() {
@@ -758,7 +820,7 @@ async function carregarSupervisor() {
   lista.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>'
 
   const { data: regs } = await sb.from('registros')
-    .select('*, usuarios!registros_estagiario_id_fkey(nome, turma)')
+    .select('*, usuarios!registros_estagiario_id_fkey(nome, turma, local_estagio)')
     .order('entrada', { ascending: false })
 
   if (!regs) { lista.innerHTML = '<div class="empty">Nenhum registro.</div>'; return }
@@ -767,7 +829,7 @@ async function carregarSupervisor() {
   const ids = [...new Set(regs.map(r => r.estagiario_id))]
   alunosSup = ids.map(id => {
     const r = regs.find(x => x.estagiario_id === id)
-    return { id, nome: r.usuarios?.nome || 'Sem nome', turma: r.usuarios?.turma || '' }
+    return { id, nome: r.usuarios?.nome || 'Sem nome', turma: r.usuarios?.turma || '', local: r.usuarios?.local_estagio || '' }
   })
 
   document.getElementById('sup-alunos').textContent = ids.length
@@ -797,7 +859,7 @@ function renderSupervisor() {
     html += `<div class="aluno-group">
       <div class="aluno-header">
         <div class="avatar avatar-blue">${iniciais(aluno.nome)}</div>
-        <div style="flex:1"><div class="aluno-nome">${aluno.nome}</div><div class="aluno-sub">${aluno.turma}</div></div>
+        <div style="flex:1"><div class="aluno-nome">${aluno.nome}</div><div class="aluno-sub">${aluno.turma}${aluno.local ? ' · ' + aluno.local : ''}</div></div>
         ${pendCount > 0 ? `<span class="pill pill-amber">${pendCount} pendente${pendCount>1?'s':''}</span>` : ''}
       </div>`
 
@@ -861,7 +923,7 @@ async function carregarCoord() {
   const fAluno = document.getElementById('coord-f-aluno').value
   const fStatus = document.getElementById('coord-f-status').value
 
-  let q = sb.from('registros').select('*, usuarios!registros_estagiario_id_fkey(id,nome,turma,perfil)').order('entrada', { ascending: false })
+  let q = sb.from('registros').select('*, usuarios!registros_estagiario_id_fkey(id,nome,turma,perfil,local_estagio)').order('entrada', { ascending: false })
   if (fAluno) q = q.eq('estagiario_id', fAluno)
   if (fStatus) q = q.eq('status', fStatus)
 
@@ -873,7 +935,7 @@ async function carregarCoord() {
   const ids = [...new Set(estagiarios.map(r => r.estagiario_id))]
   alunosCoord = ids.map(id => {
     const r = regs.find(x => x.estagiario_id === id)
-    return { id, nome: r.usuarios?.nome || '—', turma: r.usuarios?.turma || '—' }
+    return { id, nome: r.usuarios?.nome || '—', turma: r.usuarios?.turma || '—', local: r.usuarios?.local_estagio || '' }
   })
 
   // preencher select de alunos
@@ -895,8 +957,14 @@ async function carregarCoord() {
     html += `<div class="aluno-card-coord">
       <div class="aluno-card-header">
         <div class="avatar avatar-blue">${iniciais(aluno.nome)}</div>
-        <div style="flex:1"><div class="aluno-nome">${aluno.nome}</div><div class="aluno-sub">${aluno.turma}</div></div>
-        <div class="total-right"><div class="total-h">${minToHStr(aprovMin)}</div><div class="tiny">aprovadas</div></div>
+        <div style="flex:1"><div class="aluno-nome">${aluno.nome}</div><div class="aluno-sub">${aluno.turma}${aluno.local ? ' · ' + aluno.local : ''}</div></div>
+        <div class="total-right">
+            <div class="total-h">${minToHStr(aprovMin)}</div>
+            <div class="tiny">aprovadas</div>
+            <div style="width:80px;background:#f5f5f3;border-radius:999px;height:5px;margin-top:5px;overflow:hidden;">
+              <div style="height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:999px;width:${aprovMin>0?Math.min((aprovMin/(aprovMin*1.2))*100,100):0}%"></div>
+            </div>
+          </div>
       </div>
       <table><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Duração</th><th>Status</th></tr></thead><tbody>`
     regsAluno.forEach(r => {
