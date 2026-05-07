@@ -832,21 +832,29 @@ async function carregarSupervisor() {
   const lista = document.getElementById('sup-lista')
   lista.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>'
 
-  const { data: regs } = await sb.from('registros')
-    .select('*, usuarios!registros_estagiario_id_fkey(nome, turma, local_estagio)')
-    .order('entrada', { ascending: false })
+  // Buscar alunos vinculados ao supervisor pelo email
+  const { data: alunos } = await sb.from('usuarios')
+    .select('*')
+    .eq('perfil', 'estagiario')
+    .eq('supervisor_email', usuarioAtual.email)
 
-  if (!regs) { lista.innerHTML = '<div class="empty">Nenhum registro.</div>'; return }
+  alunosSup = (alunos || []).map(a => ({
+    id: a.id, nome: a.nome, turma: a.turma || '', local: a.local_estagio || '', aprovado: a.aprovado
+  }))
 
-  registrosSup = regs
-  const ids = [...new Set(regs.map(r => r.estagiario_id))]
-  alunosSup = ids.map(id => {
-    const r = regs.find(x => x.estagiario_id === id)
-    return { id, nome: r.usuarios?.nome || 'Sem nome', turma: r.usuarios?.turma || '', local: r.usuarios?.local_estagio || '' }
-  })
+  // Buscar registros desses alunos
+  registrosSup = []
+  if (alunosSup.length > 0) {
+    const ids = alunosSup.map(a => a.id)
+    const { data: regs } = await sb.from('registros')
+      .select('*')
+      .in('estagiario_id', ids)
+      .order('entrada', { ascending: false })
+    registrosSup = regs || []
+  }
 
-  document.getElementById('sup-alunos').textContent = ids.length
-  document.getElementById('sup-pend').textContent = regs.filter(r => r.status === 'pendente').length
+  document.getElementById('sup-alunos').textContent = alunosSup.length
+  document.getElementById('sup-pend').textContent = registrosSup.filter(r => r.status === 'pendente').length
   document.getElementById('sup-hoje').textContent = validadosHoje
   renderSupervisor()
 }
