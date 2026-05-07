@@ -279,6 +279,13 @@
       </div>
     </div>
     <div class="content">
+      <div id="aviso-pendente" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:.875rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:#d97706;">Aguardando confirmação do supervisor</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px;">Seus registros serão validados após confirmação.</div>
+        </div>
+      </div>
       <div class="checkin-card">
         <div class="clock" id="clock">--:--:--</div>
         <div class="date-str" id="date-str"></div>
@@ -338,7 +345,11 @@
         <div class="metric"><div class="metric-val" id="sup-hoje">0</div><div class="metric-label">Validados hoje</div></div>
       </div>
       <div id="sup-pendentes-cadastro" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:.875rem 1rem;margin-bottom:1rem;">
-        <div style="font-size:13px;font-weight:500;color:#d97706;margin-bottom:.75rem;">Estagiários aguardando aprovação de cadastro</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.75rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div style="font-size:13px;font-weight:600;color:#d97706;">Estagiários aguardando sua confirmação</div>
+        </div>
+        <div style="font-size:11px;color:#92400e;margin-bottom:.75rem;">Estes alunos já podem acessar o app mas precisam da sua confirmação de vínculo.</div>
         <div id="lista-pendentes-cadastro"></div>
       </div>
       <div class="filter-row">
@@ -595,7 +606,7 @@ async function fazerCadastro() {
     id: data.user.id, nome, email, telefone: tel,
     turma: roleAtual === 'estagiario' ? turma : null,
     perfil: roleAtual,
-    aprovado: roleAtual !== 'estagiario',
+    aprovado: true,
     supervisor_email: roleAtual === 'estagiario' ? supervisorEmail : null,
     local_estagio: roleAtual === 'estagiario' ? localEstagio : null
   })
@@ -629,10 +640,7 @@ async function fazerCadastro() {
 async function carregarUsuario(uid) {
   const { data } = await sb.from('usuarios').select('*').eq('id', uid).single()
   if (!data) { toast('Usuário não encontrado.'); await sb.auth.signOut(); return }
-  if (!data.aprovado && data.perfil === 'estagiario') {
-    toast('Sua conta ainda aguarda aprovação do supervisor.')
-    await sb.auth.signOut(); return
-  }
+  // Estagiário acessa mesmo sem aprovação — fica marcado como pendente
   usuarioAtual = data
   iniciarTela()
 }
@@ -660,6 +668,10 @@ async function iniciarEstagiario() {
   document.getElementById('est-nome').textContent = usuarioAtual.nome
   const localStr = usuarioAtual.local_estagio ? ` · ${usuarioAtual.local_estagio}` : ''
   document.getElementById('est-turma').textContent = `Estagiário · ${usuarioAtual.turma || ''}${localStr}`
+  // Mostrar aviso se pendente
+  const aviso = document.getElementById('aviso-pendente')
+  if (!usuarioAtual.aprovado) aviso.style.display = 'flex'
+  else aviso.style.display = 'none'
   iniciarRelogio()
   await verificarCheckinAberto()
   carregarRegistrosEst()
@@ -1192,10 +1204,10 @@ async function carregarPendentesCadastro() {
 async function aprovarCadastro(uid, aprovar) {
   if (aprovar) {
     await sb.from('usuarios').update({ aprovado: true }).eq('id', uid)
-    toast('Estagiário aprovado! Já pode fazer login.')
+    toast('Estagiário confirmado!')
   } else {
-    await sb.from('usuarios').delete().eq('id', uid)
-    toast('Cadastro recusado e removido.')
+    await sb.from('usuarios').update({ aprovado: false, supervisor_email: null }).eq('id', uid)
+    toast('Vínculo recusado.')
   }
   carregarPendentesCadastro()
   carregarSupervisor()
