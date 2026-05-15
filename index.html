@@ -641,16 +641,16 @@ async function fazerCadastro() {
   const { data, error } = await sb.auth.signUp({ email, password: senha })
   if (error) { alert_('cad-err', error.message); btn.textContent='Criar conta'; btn.disabled=false; return }
 
-  await sb.from('usuarios').insert({
+  const { error: insertError } = await sb.from('usuarios').insert({
     id: data.user.id, nome, email, telefone: tel,
     turma: roleAtual === 'estagiario' ? (categoriasEst.length === 1 ? categoriasEst[0] : categoriasEst.join(' | ')) : null,
     categorias: roleAtual === 'estagiario' ? categoriasEst : (roleAtual === 'coordenador' ? categoriasSelecionadas : null),
     perfil: roleAtual,
     aprovado: true,
     supervisor_email: roleAtual === 'estagiario' ? supervisorEmail : null,
-    local_estagio: roleAtual === 'estagiario' ? localEstagio : null,
-    local_estagio_coord: null
+    local_estagio: roleAtual === 'estagiario' ? localEstagio : null
   })
+  if (insertError) { alert_('cad-err', 'Erro ao salvar dados: ' + insertError.message); btn.textContent='Criar conta'; btn.disabled=false; return }
 
   // Limpar formulário
   document.getElementById('cad-nome').value = ''
