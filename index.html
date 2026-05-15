@@ -322,6 +322,11 @@
           <span id="status-txt">Fora do estágio</span>
         </div>
         <div class="timer" id="timer-row" style="display:none">Em andamento há <span id="timer-val">00:00</span></div>
+        <div id="campo-categoria-checkin" style="margin-bottom:.75rem;">
+          <select id="select-categoria-checkin" style="width:100%;padding:8px 12px;font-size:13px;border:1px solid #e5e3dc;border-radius:8px;background:#f5f4f0;color:#1a1a1a;">
+            <option value="">Selecione a categoria do estágio...</option>
+          </select>
+        </div>
         <button class="btn btn-primary" id="btn-checkin" onclick="toggleCheckin()">Registrar entrada</button>
       </div>
       <div class="metrics">
@@ -717,6 +722,7 @@ async function iniciarEstagiario() {
   if (!usuarioAtual.aprovado) aviso.style.display = 'flex'
   else aviso.style.display = 'none'
   iniciarRelogio()
+  popularSelectCategoria()
   await verificarCheckinAberto()
   carregarRegistrosEst()
 }
@@ -746,6 +752,13 @@ async function verificarCheckinAberto() {
   document.getElementById('timer-row').style.display = 'block'
   document.getElementById('btn-checkin').textContent = 'Registrar saída'
   document.getElementById('btn-checkin').className = 'btn btn-danger btn-full'
+  // Travar select ao retomar check-in
+  if (registro.categoria) {
+    const sel = document.getElementById('select-categoria-checkin')
+    sel.value = registro.categoria
+    sel.disabled = true
+    sel.style.opacity = '0.6'
+  }
 
   // Reinicia o cronômetro do ponto correto
   clearInterval(timerInterval)
@@ -757,6 +770,40 @@ async function verificarCheckinAberto() {
   }, 1000)
 
   toast('Check-in retomado das ' + `${pad(entradaDate.getHours())}:${pad(entradaDate.getMinutes())}`)
+}
+
+function popularSelectCategoria() {
+  const categorias = usuarioAtual.categorias || []
+  const sel = document.getElementById('select-categoria-checkin')
+  sel.innerHTML = '<option value="">Selecione a categoria do estágio...</option>'
+
+  if (categorias.length === 0) {
+    // Se não tem categorias no array, usa o campo turma
+    if (usuarioAtual.turma) {
+      const opt = document.createElement('option')
+      opt.value = usuarioAtual.turma
+      opt.textContent = usuarioAtual.turma
+      sel.appendChild(opt)
+    }
+  } else if (categorias.length === 1) {
+    // Se só tem uma categoria, já deixa selecionada
+    const opt = document.createElement('option')
+    opt.value = categorias[0]
+    opt.textContent = categorias[0].replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·')
+    sel.appendChild(opt)
+    sel.value = categorias[0]
+  } else {
+    // Múltiplas categorias — deixa escolher
+    categorias.forEach(cat => {
+      const opt = document.createElement('option')
+      opt.value = cat
+      opt.textContent = cat.replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·')
+      sel.appendChild(opt)
+    })
+  }
+
+  // Esconder select se só tem uma categoria
+  document.getElementById('campo-categoria-checkin').style.display = categorias.length <= 1 ? 'none' : 'block'
 }
 
 function iniciarRelogio() {
@@ -792,8 +839,13 @@ async function carregarRegistrosEst() {
     const dataStr = entrada ? entrada.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}) : '—'
     const entStr = entrada ? `${pad(entrada.getHours())}:${pad(entrada.getMinutes())}` : '—'
     const saiStr = saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : 'Em andamento'
+    const catStr = r.categoria ? r.categoria.replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·') : ''
     return `<div class="reg-card">
-      <div><div class="reg-date">${dataStr}</div><div class="reg-time">${entStr} → ${saiStr}</div></div>
+      <div>
+        <div class="reg-date">${dataStr}</div>
+        <div class="reg-time">${entStr} → ${saiStr}</div>
+        ${catStr ? `<div style="font-size:11px;color:#9b9b9b;margin-top:2px;">${catStr}</div>` : ''}
+      </div>
       <div class="reg-hours">${dur ? minToHStr(dur) : '—'}${statusPill(r.status)}</div>
     </div>`
   }).join('')
@@ -818,11 +870,15 @@ async function toggleCheckin() {
 
   if (!emEstagio) {
     // CHECK-IN
+    const categoriaSel = document.getElementById('select-categoria-checkin').value
+    if (!categoriaSel) { toast('Selecione a categoria do estágio antes de iniciar.'); btn.disabled=false; return }
+
     const { data, error } = await sb.from('registros').insert({
       estagiario_id: usuarioAtual.id,
       data: new Date().toISOString().split('T')[0],
       entrada: new Date().toISOString(),
-      status: 'pendente'
+      status: 'pendente',
+      categoria: categoriaSel
     }).select().single()
 
     if (error) { toast('Erro ao registrar entrada.'); btn.disabled=false; return }
@@ -836,6 +892,9 @@ async function toggleCheckin() {
     document.getElementById('timer-row').style.display = 'block'
     btn.textContent = 'Registrar saída'
     btn.className = 'btn btn-danger btn-full'
+    // Travar select de categoria
+    document.getElementById('select-categoria-checkin').disabled = true
+    document.getElementById('select-categoria-checkin').style.opacity = '0.6'
 
     timerInterval = setInterval(() => {
       const diff = Math.floor((Date.now() - entradaTime) / 1000)
@@ -854,6 +913,9 @@ async function toggleCheckin() {
     document.getElementById('timer-row').style.display = 'none'
     btn.textContent = 'Registrar entrada'
     btn.className = 'btn btn-primary'
+    // Liberar select de categoria
+    document.getElementById('select-categoria-checkin').disabled = false
+    document.getElementById('select-categoria-checkin').style.opacity = '1'
     toast('Saída registrada com sucesso!')
     carregarRegistrosEst()
   }
