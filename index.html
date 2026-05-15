@@ -646,7 +646,7 @@ async function fazerCadastro() {
     turma: roleAtual === 'estagiario' ? (categoriasEst.length === 1 ? categoriasEst[0] : categoriasEst.join(' | ')) : null,
     categorias: roleAtual === 'estagiario' ? categoriasEst : (roleAtual === 'coordenador' ? categoriasSelecionadas : null),
     perfil: roleAtual,
-    aprovado: true,
+    aprovado: roleAtual !== 'estagiario',
     supervisor_email: roleAtual === 'estagiario' ? supervisorEmail : null,
     local_estagio: roleAtual === 'estagiario' ? localEstagio : null
   })
@@ -876,17 +876,15 @@ async function carregarSupervisor() {
   const lista = document.getElementById('sup-lista')
   lista.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>'
 
-  // Buscar alunos vinculados ao supervisor pelo email
   const { data: alunos } = await sb.from('usuarios')
     .select('*')
     .eq('perfil', 'estagiario')
     .eq('supervisor_email', usuarioAtual.email)
 
   alunosSup = (alunos || []).map(a => ({
-    id: a.id, nome: a.nome, turma: a.turma || '', local: a.local_estagio || '', aprovado: a.aprovado
+    id: a.id, nome: a.nome, turma: a.turma || '', local: a.local_estagio || '', aprovado: a.aprovado, totalMin: 0
   }))
 
-  // Buscar registros desses alunos
   registrosSup = []
   if (alunosSup.length > 0) {
     const ids = alunosSup.map(a => a.id)
@@ -895,6 +893,12 @@ async function carregarSupervisor() {
       .in('estagiario_id', ids)
       .order('entrada', { ascending: false })
     registrosSup = regs || []
+
+    alunosSup.forEach(aluno => {
+      aluno.totalMin = registrosSup
+        .filter(r => r.estagiario_id === aluno.id && r.status === 'aprovado')
+        .reduce((s, r) => s + (r.duracao_minutos || 0), 0)
+    })
   }
 
   document.getElementById('sup-alunos').textContent = alunosSup.length
@@ -918,14 +922,24 @@ function renderSupervisor() {
 
   let html = ''
   alunosSup.forEach(aluno => {
+    // Mostrar aluno sempre, mesmo sem registros no filtro atual
     const regsAluno = regsFiltrados.filter(r => r.estagiario_id === aluno.id)
-    if (!regsAluno.length) return
     const pendCount = regsAluno.filter(r => r.status === 'pendente').length
+    const totalH = Math.floor(aluno.totalMin / 60)
+    const totalM = aluno.totalMin % 60
+    const totalStr = totalH > 0 ? `${totalH}h${pad(totalM)}min` : `${totalM}min`
     html += `<div class="aluno-group">
       <div class="aluno-header">
         <div class="avatar avatar-blue">${iniciais(aluno.nome)}</div>
-        <div style="flex:1"><div class="aluno-nome">${aluno.nome}</div><div class="aluno-sub">${aluno.turma}${aluno.local ? ' · ' + aluno.local : ''}</div></div>
-        ${pendCount > 0 ? `<span class="pill pill-amber">${pendCount} pendente${pendCount>1?'s':''}</span>` : ''}
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div class="aluno-nome">${aluno.nome}</div>
+            <span style="font-size:11px;font-weight:600;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;padding:1px 8px;border-radius:999px;">${totalStr} aprovadas</span>
+            ${!aluno.aprovado ? `<span class="pill pill-amber">Pendente confirmação</span>` : ''}
+          </div>
+          <div class="aluno-sub">${aluno.turma}${aluno.local ? ' · ' + aluno.local : ''}</div>
+        </div>
+        ${pendCount > 0 ? `<span class="pill pill-amber" style="align-self:flex-start;white-space:nowrap">${pendCount} a validar</span>` : ''}
       </div>`
 
     regsAluno.forEach(r => {
