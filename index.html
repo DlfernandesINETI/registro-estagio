@@ -335,16 +335,9 @@
         <div class="metric"><div class="metric-val" id="est-pend">0</div><div class="metric-label">Pendentes</div></div>
       </div>
       <div style="background:#fff;border:1px solid #e5e5e3;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-size:13px;font-weight:500;color:#1a1a1a">Total de horas aprovadas</span>
-          <span style="font-size:14px;font-weight:600;color:#16a34a" id="est-barra-val">0h</span>
-        </div>
-        <div style="background:#f5f5f3;border-radius:999px;height:10px;overflow:hidden;">
-          <div id="est-barra" style="height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:999px;width:0%;transition:width .6s ease;"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:6px;">
-          <span style="font-size:11px;color:#9b9b9b">0h</span>
-          <span style="font-size:11px;color:#9b9b9b" id="est-barra-max"></span>
+        <div style="font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:.75rem;">Horas aprovadas por categoria</div>
+        <div id="est-horas-categorias">
+          <div style="font-size:12px;color:#9b9b9b;text-align:center;padding:.5rem 0;">Nenhum registro aprovado ainda.</div>
         </div>
       </div>
       <div class="section-title">Registros recentes</div>
@@ -855,14 +848,33 @@ async function carregarRegistrosEst() {
   document.getElementById('est-aprov').textContent = minToHStr(aprovMin)
   document.getElementById('est-pend').textContent = pendentes
 
-  // Barra de progresso dinâmica
-  const aprovH = Math.floor(aprovMin / 60)
-  document.getElementById('est-barra-val').textContent = minToHStr(aprovMin)
-  // Barra sempre mostra progresso relativo ao maior valor (aprovMin + 20% a mais)
-  const maxMin = aprovMin > 0 ? Math.ceil(aprovMin * 1.2 / 60) * 60 : 60
-  const pct = aprovMin > 0 ? Math.min((aprovMin / maxMin) * 100, 100) : 0
-  document.getElementById('est-barra').style.width = pct + '%'
-  document.getElementById('est-barra-max').textContent = minToHStr(maxMin)
+  // Horas por categoria
+  const horasPorCat = {}
+  data.filter(r => r.status === 'aprovado' && r.categoria).forEach(r => {
+    if (!horasPorCat[r.categoria]) horasPorCat[r.categoria] = 0
+    horasPorCat[r.categoria] += r.duracao_minutos || 0
+  })
+
+  const divCats = document.getElementById('est-horas-categorias')
+  const cats = Object.keys(horasPorCat)
+  if (cats.length === 0) {
+    divCats.innerHTML = '<div style="font-size:12px;color:#9b9b9b;text-align:center;padding:.5rem 0;">Nenhum registro aprovado ainda.</div>'
+  } else {
+    divCats.innerHTML = cats.map(cat => {
+      const min = horasPorCat[cat]
+      const pct = Math.min((min / (min * 1.2)) * 100, 100)
+      const catShort = cat.replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·')
+      return `<div style="margin-bottom:.75rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:11px;color:#6b6b6b;flex:1;margin-right:8px;">${catShort}</span>
+          <span style="font-size:12px;font-weight:600;color:#16a34a;white-space:nowrap;">${minToHStr(min)}</span>
+        </div>
+        <div style="background:#f5f5f3;border-radius:999px;height:7px;overflow:hidden;">
+          <div style="height:100%;background:linear-gradient(90deg,#16a34a,#4ade80);border-radius:999px;width:${pct}%;transition:width .6s ease;"></div>
+        </div>
+      </div>`
+    }).join('')
+  }
 }
 
 async function toggleCheckin() {
