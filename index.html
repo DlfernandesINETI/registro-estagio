@@ -235,14 +235,20 @@
         </div>
         <div class="field" id="field-categorias-coord" style="display:none">
           <label>Categorias que você coordena *</label>
-          <div style="border:1px solid #e5e3dc;border-radius:8px;padding:.75rem;background:#f5f4f0;max-height:200px;overflow-y:auto;">
-              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental</label>
-              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental</label>
-              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO III – Licenciatura – Ensino Médio" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO III – Licenciatura – Ensino Médio</label>
-              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO IV – Licenciatura – Educação Especial" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO IV – Licenciatura – Educação Especial</label>
-              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO I – Bacharelado – Esporte" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO I – Bacharelado – Esporte</label>
-              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO II – Bacharelado – Condicionamento Físico" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO II – Bacharelado – Condicionamento Físico</label>
-              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO III – Bacharelado – Saúde e Lazer" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO III – Bacharelado – Saúde e Lazer</label>
+          <div style="border:1px solid #e5e3dc;border-radius:8px;background:#f5f4f0;overflow:hidden;">
+            <div style="padding:4px 8px;background:#e8e6e0;font-size:10px;font-weight:700;color:#6b6b6b;letter-spacing:1px;">LICENCIATURA</div>
+            <div style="padding:6px 8px;display:flex;flex-direction:column;gap:4px;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-coord" value="ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. I – Ed. Infantil e Anos Iniciais</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-coord" value="ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. II – Anos Finais do EF</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-coord" value="ESTÁGIO III – Licenciatura – Ensino Médio" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. III – Ensino Médio</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-coord" value="ESTÁGIO IV – Licenciatura – Educação Especial" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. IV – Ed. Especial</label>
+            </div>
+            <div style="padding:4px 8px;background:#e8e6e0;font-size:10px;font-weight:700;color:#6b6b6b;letter-spacing:1px;">BACHARELADO</div>
+            <div style="padding:6px 8px;display:flex;flex-direction:column;gap:4px;">
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-coord" value="ESTÁGIO I – Bacharelado – Esporte" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. I – Esporte</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-coord" value="ESTÁGIO II – Bacharelado – Condicionamento Físico" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. II – Condicionamento Físico</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-coord" value="ESTÁGIO III – Bacharelado – Saúde e Lazer" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. III – Saúde e Lazer</label>
+            </div>
           </div>
         </div>
         <div class="field" id="field-supervisor">
