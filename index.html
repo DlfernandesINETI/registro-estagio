@@ -216,14 +216,28 @@
         <div class="field"><label>E-mail *</label><input type="email" id="cad-email" placeholder="seu@email.com"/></div>
         <div class="field"><label>Telefone *</label><input type="tel" id="cad-tel" placeholder="(42) 99999-9999"/></div>
         <div class="field" id="field-turma">
-          <label>Turma / turno *</label>
-          <select id="cad-turma">
-            <option value="">Selecione...</option>
-            <option>Bacharelado 1</option>
-            <option>Bacharelado 2</option>
-            <option>Licenciatura 1</option>
-            <option>Licenciatura 2</option>
-          </select>
+          <label>Categoria(s) de estágio *</label>
+          <div style="border:1px solid #e5e3dc;border-radius:8px;padding:.75rem;background:#f5f4f0;max-height:200px;overflow-y:auto;">
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-estagiario" value="ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-estagiario" value="ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-estagiario" value="ESTÁGIO III – Licenciatura – Ensino Médio" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO III – Licenciatura – Ensino Médio</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-estagiario" value="ESTÁGIO IV – Licenciatura – Educação Especial" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO IV – Licenciatura – Educação Especial</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-estagiario" value="ESTÁGIO I – Bacharelado – Esporte" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO I – Bacharelado – Esporte</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-estagiario" value="ESTÁGIO II – Bacharelado – Condicionamento Físico" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO II – Bacharelado – Condicionamento Físico</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="cat-estagiario" value="ESTÁGIO III – Bacharelado – Saúde e Lazer" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO III – Bacharelado – Saúde e Lazer</label>
+          </div>
+        </div>
+        <div class="field" id="field-categorias-coord" style="display:none">
+          <label>Categorias que você coordena *</label>
+          <div style="border:1px solid #e5e3dc;border-radius:8px;padding:.75rem;background:#f5f4f0;max-height:200px;overflow-y:auto;">
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO III – Licenciatura – Ensino Médio" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO III – Licenciatura – Ensino Médio</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO IV – Licenciatura – Educação Especial" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO IV – Licenciatura – Educação Especial</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO I – Bacharelado – Esporte" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO I – Bacharelado – Esporte</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO II – Bacharelado – Condicionamento Físico" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO II – Bacharelado – Condicionamento Físico</label>
+              <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" value="ESTÁGIO III – Bacharelado – Saúde e Lazer" style="margin-top:2px;accent-color:#f5c200;flex-shrink:0;"/> ESTÁGIO III – Bacharelado – Saúde e Lazer</label>
+          </div>
         </div>
         <div class="field" id="field-supervisor">
           <label>E-mail do seu supervisor *</label>
@@ -554,6 +568,7 @@ function selectRole(role) {
   document.getElementById('field-supervisor').style.display = role==='estagiario' ? 'block' : 'none'
   document.getElementById('field-local').style.display = role==='estagiario' ? 'block' : 'none'
   document.getElementById('field-local-outro').style.display = 'none'
+  document.getElementById('field-categorias-coord').style.display = role==='coordenador' ? 'block' : 'none'
   document.getElementById('field-codigo').style.display = role==='coordenador' ? 'block' : 'none'
 }
 
@@ -588,9 +603,18 @@ async function fazerCadastro() {
   const localSel = document.getElementById('cad-local').value
   const localOutro = document.getElementById('cad-local-outro').value.trim()
   const localEstagio = localSel === 'Outro' ? localOutro : localSel
+  // Categorias do estagiário (múltipla escolha)
+  const categoriasEst = Array.from(document.querySelectorAll('.cat-estagiario:checked')).map(c => c.value)
+  if (roleAtual === 'estagiario' && categoriasEst.length === 0) { alert_('cad-err','Selecione ao menos uma categoria de estágio.'); return }
   if (roleAtual === 'estagiario' && !supervisorEmail) { alert_('cad-err','Informe o e-mail do seu supervisor.'); return }
   if (roleAtual === 'estagiario' && !localSel) { alert_('cad-err','Selecione o local de estágio.'); return }
   if (roleAtual === 'estagiario' && localSel === 'Outro' && !localOutro) { alert_('cad-err','Descreva o local de estágio.'); return }
+  // Coletar categorias do coordenador
+  let categoriasSelecionadas = []
+  if (roleAtual === 'coordenador') {
+    categoriasSelecionadas = Array.from(document.querySelectorAll('#field-categorias-coord input[type=checkbox]:checked')).map(c => c.value)
+    if (categoriasSelecionadas.length === 0) { alert_('cad-err','Selecione ao menos uma categoria.'); return }
+  }
   if (roleAtual === 'coordenador' && codigo !== CODIGO_COORDENADOR) {
     alert_('cad-err','Código de acesso inválido. Verifique com a coordenação.'); return
   }
@@ -604,11 +628,13 @@ async function fazerCadastro() {
 
   await sb.from('usuarios').insert({
     id: data.user.id, nome, email, telefone: tel,
-    turma: roleAtual === 'estagiario' ? turma : null,
+    turma: roleAtual === 'estagiario' ? (categoriasEst.length === 1 ? categoriasEst[0] : categoriasEst.join(' | ')) : null,
+    categorias: roleAtual === 'estagiario' ? categoriasEst : (roleAtual === 'coordenador' ? categoriasSelecionadas : null),
     perfil: roleAtual,
     aprovado: true,
     supervisor_email: roleAtual === 'estagiario' ? supervisorEmail : null,
-    local_estagio: roleAtual === 'estagiario' ? localEstagio : null
+    local_estagio: roleAtual === 'estagiario' ? localEstagio : null,
+    local_estagio_coord: null
   })
 
   // Limpar formulário
@@ -620,6 +646,8 @@ async function fazerCadastro() {
   document.getElementById('cad-local').value = ''
   document.getElementById('cad-local-outro').value = ''
   document.getElementById('field-local-outro').style.display = 'none'
+  document.querySelectorAll('#field-categorias-coord input[type=checkbox]').forEach(c => c.checked = false)
+  document.querySelectorAll('.cat-estagiario').forEach(c => c.checked = false)
   document.getElementById('cad-senha').value = ''
   document.getElementById('cad-codigo').value = ''
 
@@ -667,7 +695,8 @@ async function iniciarEstagiario() {
   document.getElementById('est-avatar').textContent = ini
   document.getElementById('est-nome').textContent = usuarioAtual.nome
   const localStr = usuarioAtual.local_estagio ? ` · ${usuarioAtual.local_estagio}` : ''
-  document.getElementById('est-turma').textContent = `Estagiário · ${usuarioAtual.turma || ''}${localStr}`
+  const turmaShort = (usuarioAtual.turma || '').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·').replace('ESTÁGIO', 'Est.')
+  document.getElementById('est-turma').textContent = `Estagiário · ${turmaShort}${localStr}`
   // Mostrar aviso se pendente
   const aviso = document.getElementById('aviso-pendente')
   if (!usuarioAtual.aprovado) aviso.style.display = 'flex'
@@ -944,7 +973,20 @@ async function carregarCoord() {
   const fAluno = document.getElementById('coord-f-aluno').value
   const fStatus = document.getElementById('coord-f-status').value
 
+  // Buscar só alunos das categorias do coordenador
+  const categoriasCoord = usuarioAtual.categorias || []
+  let alunosFiltradosIds = []
+  if (categoriasCoord.length > 0) {
+    const { data: alunosCat } = await sb.from('usuarios')
+      .select('id')
+      .eq('perfil', 'estagiario')
+      .overlaps('categorias', categoriasCoord)
+    alunosFiltradosIds = (alunosCat || []).map(a => a.id)
+  }
+
   let q = sb.from('registros').select('*, usuarios!registros_estagiario_id_fkey(id,nome,turma,perfil,local_estagio)').order('entrada', { ascending: false })
+  if (alunosFiltradosIds.length > 0) q = q.in('estagiario_id', alunosFiltradosIds)
+  else if (categoriasCoord.length > 0) q = q.eq('estagiario_id', 'nenhum')
   if (fAluno) q = q.eq('estagiario_id', fAluno)
   if (fStatus) q = q.eq('status', fStatus)
 
