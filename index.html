@@ -607,14 +607,14 @@ async function fazerCadastro() {
   const nome = document.getElementById('cad-nome').value.trim()
   const email = document.getElementById('cad-email').value.trim()
   const tel = document.getElementById('cad-tel').value.trim()
-  const turma = document.getElementById('cad-turma').value
+  const turma = '' // turma agora vem das categorias selecionadas
   const senha = document.getElementById('cad-senha').value
   const codigo = document.getElementById('cad-codigo').value.trim().toUpperCase()
   hideAlert('cad-err'); hideAlert('cad-info')
 
   const supervisorEmail = document.getElementById('cad-supervisor-email').value.trim()
   if (!nome || !email || !tel || !senha) { alert_('cad-err','Preencha todos os campos.'); return }
-  if (roleAtual === 'estagiario' && !turma) { alert_('cad-err','Selecione sua turma.'); return }
+  // turma agora é definida pelas categorias
   const localSel = document.getElementById('cad-local').value
   const localOutro = document.getElementById('cad-local-outro').value.trim()
   const localEstagio = localSel === 'Outro' ? localOutro : localSel
@@ -656,7 +656,7 @@ async function fazerCadastro() {
   document.getElementById('cad-nome').value = ''
   document.getElementById('cad-email').value = ''
   document.getElementById('cad-tel').value = ''
-  document.getElementById('cad-turma').value = ''
+  document.querySelectorAll('.cat-estagiario').forEach(c => c.checked = false)
   document.getElementById('cad-supervisor-email').value = ''
   document.getElementById('cad-local').value = ''
   document.getElementById('cad-local-outro').value = ''
