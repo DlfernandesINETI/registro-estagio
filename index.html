@@ -557,7 +557,7 @@ function hideAlert(id) { document.getElementById(id).className = 'alert' }
 
 function minToHStr(min) {
   const h = Math.floor(min / 60), m = min % 60
-  return m > 0 ? `${h}h${pad(m)}` : `${h}h`
+  return `${h}h${pad(m)}min`
 }
 function statusPill(status) {
   const map = { aprovado: ['pill-green','Aprovado'], pendente: ['pill-amber','Pendente'], reprovado: ['pill-red','Reprovado'] }
@@ -766,7 +766,8 @@ async function verificarCheckinAberto() {
     const diff = Math.floor((Date.now() - entradaTime) / 1000)
     const h = Math.floor(diff / 3600)
     const m = Math.floor((diff % 3600) / 60)
-    document.getElementById('timer-val').textContent = `${pad(h)}:${pad(m)}`
+    const s = diff % 60
+    document.getElementById('timer-val').textContent = h > 0 ? `${h}h${pad(m)}min${pad(s)}s` : `${pad(m)}min${pad(s)}s`
   }, 1000)
 
   toast('Check-in retomado das ' + `${pad(entradaDate.getHours())}:${pad(entradaDate.getMinutes())}`)
@@ -1075,7 +1076,7 @@ async function carregarCoord() {
     alunosFiltradosIds = (alunosCat || []).map(a => a.id)
   }
 
-  let q = sb.from('registros').select('*, usuarios!registros_estagiario_id_fkey(id,nome,turma,perfil,local_estagio)').order('entrada', { ascending: false })
+  let q = sb.from('registros').select('*, usuarios!registros_estagiario_id_fkey(id,nome,turma,perfil,local_estagio,supervisor_email)').order('entrada', { ascending: false })
   if (alunosFiltradosIds.length > 0) q = q.in('estagiario_id', alunosFiltradosIds)
   else if (categoriasCoord.length > 0) q = q.eq('estagiario_id', 'nenhum')
   if (fAluno) q = q.eq('estagiario_id', fAluno)
@@ -1087,9 +1088,27 @@ async function carregarCoord() {
   registrosCoord = regs
   const estagiarios = regs.filter(r => r.usuarios?.perfil === 'estagiario')
   const ids = [...new Set(estagiarios.map(r => r.estagiario_id))]
+  // Buscar nomes dos supervisores
+  const supervisorEmails = [...new Set(regs.map(r => r.usuarios?.supervisor_email).filter(Boolean))]
+  let supervisoresMap = {}
+  if (supervisorEmails.length > 0) {
+    const { data: supervisores } = await sb.from('usuarios')
+      .select('nome, email')
+      .in('email', supervisorEmails)
+    if (supervisores) supervisores.forEach(s => { supervisoresMap[s.email] = s.nome })
+  }
+
   alunosCoord = ids.map(id => {
     const r = regs.find(x => x.estagiario_id === id)
-    return { id, nome: r.usuarios?.nome || '—', turma: r.usuarios?.turma || '—', local: r.usuarios?.local_estagio || '' }
+    const supEmail = r.usuarios?.supervisor_email || ''
+    return {
+      id,
+      nome: r.usuarios?.nome || '—',
+      turma: r.usuarios?.turma || '—',
+      local: r.usuarios?.local_estagio || '',
+      supervisor_email: supEmail,
+      supervisor_nome: supervisoresMap[supEmail] || supEmail
+    }
   })
 
   // preencher select de alunos
@@ -1179,6 +1198,44 @@ function exportarPDF() {
       doc.setDrawColor(220); doc.line(14, y+1.5, 196, y+1.5); y += 6
     })
     y += 6
+
+    // ── Bloco de assinaturas por aluno ──
+    if (y > 230) { doc.addPage(); y = 18 }
+    y += 6
+
+    // Buscar nome do supervisor do aluno
+    const supervisorNome = aluno.supervisor_nome || aluno.supervisor_email || '___________________________'
+
+    // Linha separadora
+    doc.setDrawColor(180)
+    doc.line(14, y, 196, y); y += 8
+
+    // Título do bloco
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(80)
+    doc.text('ASSINATURAS', 14, y); y += 6
+    doc.setTextColor(0)
+
+    // 3 colunas de assinatura
+    const colW = 56
+    const positions = [14, 80, 146]
+    const labels = ['Estagiário(a)', 'Supervisor(a)', 'Coordenador(a)']
+    const names = [aluno.nome, supervisorNome, usuarioAtual.nome]
+
+    positions.forEach((px, i) => {
+      // Linha de assinatura
+      doc.setDrawColor(100)
+      doc.line(px, y + 10, px + colW, y + 10)
+      // Nome
+      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(60)
+      const nomeCurto = names[i].length > 22 ? names[i].substring(0, 22) + '.' : names[i]
+      doc.text(nomeCurto, px + colW/2, y + 14, { align: 'center' })
+      // Função
+      doc.setFontSize(6); doc.setTextColor(120)
+      doc.text(labels[i], px + colW/2, y + 18, { align: 'center' })
+      doc.setTextColor(0)
+    })
+
+    y += 26
   })
 
   doc.save('relatorio-estagio.pdf')
