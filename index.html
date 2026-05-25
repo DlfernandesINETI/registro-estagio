@@ -251,10 +251,10 @@
             </div>
           </div>
         </div>
-        <div class="field" id="field-supervisor">
-          <label>E-mail do seu supervisor *</label>
-          <input type="email" id="cad-supervisor-email" placeholder="supervisor@email.com"/>
-          <div style="font-size:11px;color:#9b9b9b;margin-top:4px;">O supervisor receberá seu pedido de aprovação ao entrar no sistema.</div>
+        <div id="field-supervisor" style="display:none">
+          <div style="font-size:13px;font-weight:500;color:#6b6b6b;margin-bottom:.5rem;">Supervisor(es) por categoria *</div>
+          <div id="campos-supervisores"></div>
+          <div style="font-size:11px;color:#9b9b9b;margin-top:4px;">Cada supervisor receberá seu pedido de aprovação ao entrar no sistema.</div>
         </div>
         <div class="field" id="field-local">
           <label>Local de estágio *</label>
@@ -578,7 +578,7 @@ function selectRole(role) {
   document.getElementById('role-supervisor').classList.toggle('active', role==='supervisor')
   document.getElementById('role-coordenador').classList.toggle('active', role==='coordenador')
   document.getElementById('field-turma').style.display = role==='estagiario' ? 'block' : 'none'
-  document.getElementById('field-supervisor').style.display = role==='estagiario' ? 'block' : 'none'
+  if (role !== 'estagiario') document.getElementById('field-supervisor').style.display = 'none'
   document.getElementById('field-local').style.display = role==='estagiario' ? 'block' : 'none'
   document.getElementById('field-local-outro').style.display = 'none'
   document.getElementById('field-categorias-coord').style.display = role==='coordenador' ? 'block' : 'none'
@@ -610,7 +610,12 @@ async function fazerCadastro() {
   const codigo = document.getElementById('cad-codigo').value.trim().toUpperCase()
   hideAlert('cad-err'); hideAlert('cad-info')
 
-  const supervisorEmail = document.getElementById('cad-supervisor-email').value.trim()
+  // Coletar supervisores por categoria
+  const supervisoresPorCat = {}
+  document.querySelectorAll('.sup-email-input').forEach(inp => {
+    if (inp.value.trim()) supervisoresPorCat[inp.dataset.cat] = inp.value.trim()
+  })
+  const supervisorEmail = Object.values(supervisoresPorCat)[0] || ''
   if (!nome || !email || !tel || !senha) { alert_('cad-err','Preencha todos os campos.'); return }
   // turma agora é definida pelas categorias
   const localSel = document.getElementById('cad-local').value
@@ -619,7 +624,10 @@ async function fazerCadastro() {
   // Categorias do estagiário (múltipla escolha)
   const categoriasEst = Array.from(document.querySelectorAll('.cat-estagiario:checked')).map(c => c.value)
   if (roleAtual === 'estagiario' && categoriasEst.length === 0) { alert_('cad-err','Selecione ao menos uma categoria de estágio.'); return }
-  if (roleAtual === 'estagiario' && !supervisorEmail) { alert_('cad-err','Informe o e-mail do seu supervisor.'); return }
+  if (roleAtual === 'estagiario' && categoriasEst.length > 0) {
+    const faltando = categoriasEst.filter(c => !supervisoresPorCat[c])
+    if (faltando.length > 0) { alert_('cad-err','Informe o e-mail do supervisor para cada categoria.'); return }
+  }
   if (roleAtual === 'estagiario' && !localSel) { alert_('cad-err','Selecione o local de estágio.'); return }
   if (roleAtual === 'estagiario' && localSel === 'Outro' && !localOutro) { alert_('cad-err','Descreva o local de estágio.'); return }
   // Coletar categorias do coordenador
@@ -646,6 +654,8 @@ async function fazerCadastro() {
     perfil: roleAtual,
     aprovado: roleAtual !== 'estagiario',
     supervisor_email: roleAtual === 'estagiario' ? supervisorEmail : null,
+    supervisores_categorias: roleAtual === 'estagiario' ? JSON.stringify(supervisoresPorCat) : null,
+    supervisores_por_categoria: roleAtual === 'estagiario' ? supervisoresPorCat : null,
     local_estagio: roleAtual === 'estagiario' ? localEstagio : null
   })
   if (insertError) { alert_('cad-err', 'Erro ao salvar dados: ' + insertError.message); btn.textContent='Criar conta'; btn.disabled=false; return }
@@ -655,7 +665,8 @@ async function fazerCadastro() {
   document.getElementById('cad-email').value = ''
   document.getElementById('cad-tel').value = ''
   document.querySelectorAll('.cat-estagiario').forEach(c => c.checked = false)
-  document.getElementById('cad-supervisor-email').value = ''
+  document.getElementById('campos-supervisores').innerHTML = ''
+  document.getElementById('field-supervisor').style.display = 'none'
   document.getElementById('cad-local').value = ''
   document.getElementById('cad-local-outro').value = ''
   document.getElementById('field-local-outro').style.display = 'none'
@@ -951,14 +962,39 @@ async function carregarSupervisor() {
   const lista = document.getElementById('sup-lista')
   lista.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>'
 
-  const { data: alunos } = await sb.from('usuarios')
+  // Buscar alunos vinculados pelo supervisor_email OU pelo supervisores_por_categoria
+  const { data: alunosDireto } = await sb.from('usuarios')
     .select('*')
     .eq('perfil', 'estagiario')
     .eq('supervisor_email', usuarioAtual.email)
 
-  alunosSup = (alunos || []).map(a => ({
-    id: a.id, nome: a.nome, turma: a.turma || '', local: a.local_estagio || '', aprovado: a.aprovado, totalMin: 0
-  }))
+  const { data: alunosMulti } = await sb.from('usuarios')
+    .select('*')
+    .eq('perfil', 'estagiario')
+    .contains('supervisores_por_categoria', JSON.stringify({[usuarioAtual.email]: usuarioAtual.email}))
+
+  // Mesclar sem duplicatas
+  const todosIds = new Set()
+  const alunosMesclados = []
+  ;[...(alunosDireto||[]), ...(alunosMulti||[])].forEach(a => {
+    if (!todosIds.has(a.id)) { todosIds.add(a.id); alunosMesclados.push(a) }
+  })
+  const alunos = alunosMesclados
+
+  alunosSup = (alunos || []).map(a => {
+    // Identificar quais categorias este supervisor cuida
+    const supCats = []
+    if (a.supervisores_por_categoria) {
+      Object.entries(a.supervisores_por_categoria).forEach(([cat, email]) => {
+        if (email === usuarioAtual.email) supCats.push(cat)
+      })
+    }
+    return {
+      id: a.id, nome: a.nome, turma: a.turma || '', local: a.local_estagio || '',
+      aprovado: a.aprovado, totalMin: 0,
+      categoriasSup: supCats.length > 0 ? supCats : (a.categorias || [])
+    }
+  })
 
   registrosSup = []
   if (alunosSup.length > 0) {
@@ -1263,7 +1299,45 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('field-local-outro').style.display =
       selLocal.value === 'Outro' ? 'block' : 'none'
   })
+
+  // Atualizar campos de supervisor conforme categorias selecionadas
+  document.addEventListener('change', e => {
+    if (e.target && e.target.classList.contains('cat-estagiario')) {
+      atualizarCamposSupervisores()
+    }
+  })
 })
+
+function atualizarCamposSupervisores() {
+  const cats = Array.from(document.querySelectorAll('.cat-estagiario:checked')).map(c => c.value)
+  const container = document.getElementById('campos-supervisores')
+  const fieldSup = document.getElementById('field-supervisor')
+
+  if (cats.length === 0) {
+    fieldSup.style.display = 'none'
+    container.innerHTML = ''
+    return
+  }
+
+  fieldSup.style.display = 'block'
+
+  // Preservar emails já digitados
+  const emailsExistentes = {}
+  container.querySelectorAll('input[data-cat]').forEach(inp => {
+    emailsExistentes[inp.dataset.cat] = inp.value
+  })
+
+  container.innerHTML = cats.map(cat => {
+    const catShort = cat.replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·')
+    const valExistente = emailsExistentes[cat] || ''
+    return `<div class="field" style="margin-bottom:.625rem;">
+      <label style="font-size:11px;color:#9b9b9b;">${catShort}</label>
+      <input type="email" data-cat="${cat}" class="sup-email-input"
+        placeholder="supervisor@email.com" value="${valExistente}"
+        style="width:100%;padding:8px 12px;font-size:13px;border:1px solid #e5e3dc;border-radius:8px;background:#f5f4f0;color:#1a1a1a;"/>
+    </div>`
+  }).join('')
+}
 
 function toggleLocalOutroPerfil() {
   const v = document.getElementById('perfil-local').value
@@ -1385,11 +1459,21 @@ async function enviarResetSenha() {
 // APROVAÇÃO DE CADASTRO DE ESTAGIÁRIOS
 // ═══════════════════════════════════════════
 async function carregarPendentesCadastro() {
-  const { data } = await sb.from('usuarios')
+  const { data: todosPend } = await sb.from('usuarios')
     .select('*')
     .eq('perfil', 'estagiario')
-    .eq('supervisor_email', usuarioAtual.email)
     .eq('aprovado', false)
+
+  const data = (todosPend || []).filter(a => {
+    if (a.supervisor_email === usuarioAtual.email) return true
+    if (a.supervisores_categorias) {
+      try {
+        const mapa = JSON.parse(a.supervisores_categorias)
+        return Object.values(mapa).includes(usuarioAtual.email)
+      } catch(e) { return false }
+    }
+    return false
+  })
 
   const box = document.getElementById('sup-pendentes-cadastro')
   const lista = document.getElementById('lista-pendentes-cadastro')
