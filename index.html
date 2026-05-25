@@ -486,6 +486,19 @@
   </div>
 </div>
 
+<!-- Modal: Nova senha (após clicar no link do email) -->
+<div id="modal-nova-senha" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:360px;margin:1rem;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:.5rem;">Criar nova senha</h2>
+    <p style="font-size:13px;color:#9b9b9b;margin-bottom:1.25rem;">Digite sua nova senha abaixo.</p>
+    <div class="alert alert-error" id="nova-senha-err"></div>
+    <div class="alert alert-success" id="nova-senha-ok"></div>
+    <div class="field"><label>Nova senha</label><input type="password" id="input-nova-senha" placeholder="Mínimo 6 caracteres"/></div>
+    <div class="field"><label>Confirmar senha</label><input type="password" id="input-confirma-senha" placeholder="Repita a senha"/></div>
+    <button class="btn btn-primary" onclick="salvarNovaSenha()" id="btn-nova-senha">Salvar nova senha</button>
+  </div>
+</div>
+
 <!-- Modal: Esqueci minha senha -->
 <div id="modal-senha" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:12px;padding:1.75rem;width:100%;max-width:360px;margin:1rem;">
@@ -1441,7 +1454,7 @@ async function enviarResetSenha() {
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
 
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
+    redirectTo: window.location.href.split('#')[0]
   })
 
   if (error) {
@@ -1517,11 +1530,67 @@ async function aprovarCadastro(uid, aprovar) {
 // INICIALIZAÇÃO — verifica sessão existente
 // ═══════════════════════════════════════════
 ;(async () => {
+  // Verificar se é um link de reset de senha
+  const hash = window.location.hash
+  if (hash && hash.includes('type=recovery')) {
+    // Supabase já processa o token automaticamente via onAuthStateChange
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        document.getElementById('modal-nova-senha').style.display = 'flex'
+      }
+      if (event === 'SIGNED_IN' && session) {
+        // após trocar senha e fazer login
+      }
+    })
+    return
+  }
+
   const { data } = await sb.auth.getSession()
   if (data?.session?.user) {
     await carregarUsuario(data.session.user.id)
   }
 })()
+
+async function salvarNovaSenha() {
+  const nova = document.getElementById('input-nova-senha').value
+  const confirma = document.getElementById('input-confirma-senha').value
+  const errEl = document.getElementById('nova-senha-err')
+  const okEl = document.getElementById('nova-senha-ok')
+  errEl.className = 'alert'
+  okEl.className = 'alert'
+
+  if (nova.length < 6) {
+    errEl.textContent = 'A senha deve ter pelo menos 6 caracteres.'
+    errEl.className = 'alert alert-error show'
+    return
+  }
+  if (nova !== confirma) {
+    errEl.textContent = 'As senhas não coincidem.'
+    errEl.className = 'alert alert-error show'
+    return
+  }
+
+  const btn = document.getElementById('btn-nova-senha')
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
+
+  const { error } = await sb.auth.updateUser({ password: nova })
+
+  if (error) {
+    errEl.textContent = 'Erro ao salvar. Tente novamente.'
+    errEl.className = 'alert alert-error show'
+  } else {
+    okEl.textContent = 'Senha alterada com sucesso! Faça login.'
+    okEl.className = 'alert alert-success show'
+    await sb.auth.signOut()
+    setTimeout(() => {
+      document.getElementById('modal-nova-senha').style.display = 'none'
+      window.location.hash = ''
+      mostrarTela('auth')
+      switchTab('login')
+    }, 2000)
+  }
+  btn.textContent = 'Salvar nova senha'; btn.disabled = false
+}
 </script>
 </body>
 </html>
