@@ -489,6 +489,43 @@
   </div>
 </div>
 
+<!-- Modal: Observações do check-out -->
+<div id="modal-observacoes" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:420px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:.5rem;">Relatório da atividade</h2>
+    <p style="font-size:13px;color:#9b9b9b;margin-bottom:1.25rem;">Preencha o relatório antes de encerrar o estágio de hoje.</p>
+
+    <div class="alert alert-error" id="obs-err"></div>
+
+    <!-- Orientação -->
+    <div style="background:#eff4ff;border:1px solid #bfdbfe;border-radius:8px;padding:.875rem;margin-bottom:1rem;">
+      <div style="font-size:12px;font-weight:600;color:#1a6ef5;margin-bottom:6px;">📋 O que preencher:</div>
+      <ul style="font-size:11px;color:#1a6ef5;padding-left:1rem;line-height:1.8;">
+        <li>Atividades desenvolvidas durante o estágio</li>
+        <li>Conteúdos trabalhados com os alunos</li>
+        <li>Dificuldades encontradas e como foram superadas</li>
+        <li>Observações sobre a turma ou o ambiente</li>
+        <li>Aprendizados do dia</li>
+      </ul>
+    </div>
+
+    <div class="field">
+      <label>Relatório de atividades *</label>
+      <textarea id="input-observacoes" rows="6"
+        placeholder="Descreva as atividades desenvolvidas, conteúdos trabalhados, observações relevantes e aprendizados do dia..."
+        style="width:100%;padding:10px 12px;font-size:13px;border:1px solid #e5e3dc;border-radius:8px;background:#f5f4f0;color:#1a1a1a;resize:vertical;font-family:inherit;line-height:1.6;"></textarea>
+      <div style="font-size:11px;color:#9b9b9b;margin-top:4px;text-align:right;">
+        <span id="obs-char">0</span> caracteres (mínimo 50)
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:.5rem;">
+      <button class="btn btn-ghost" style="flex:1" onclick="fecharModalObs()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="confirmarCheckout()" id="btn-confirmar-checkout">Encerrar estágio</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Correção de saída -->
 <div id="modal-correcao-saida" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:360px;margin:1rem;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
@@ -966,23 +1003,10 @@ async function toggleCheckin() {
     }, 1000)
 
   } else {
-    // CHECK-OUT
-    clearInterval(timerInterval)
-    await sb.from('registros').update({ saida: new Date().toISOString() }).eq('id', window._registroAtualId)
-
-    emEstagio = false; entradaTime = null
-    document.getElementById('status-pill').className = 'status-pill out'
-    document.getElementById('status-dot').className = 'dot dot-gray'
-    document.getElementById('status-txt').textContent = 'Fora do estágio'
-    document.getElementById('timer-row').style.display = 'none'
-    btn.textContent = 'Registrar entrada'
-    btn.className = 'btn btn-primary'
-    // Liberar select de categoria
-    document.getElementById('select-categoria-checkin').disabled = false
-    document.getElementById('select-categoria-checkin').style.opacity = '1'
-    document.getElementById('btn-corrigir-saida').style.display = 'none'
-    toast('Saída registrada com sucesso!')
-    carregarRegistrosEst()
+    // CHECK-OUT — abrir modal de observações primeiro
+    btn.disabled = false
+    abrirModalObs()
+    return
   }
   btn.disabled = false
 }
@@ -1578,6 +1602,67 @@ async function aprovarCadastro(uid, aprovar) {
     await carregarUsuario(data.session.user.id)
   }
 })()
+
+function abrirModalObs() {
+  document.getElementById('obs-err').className = 'alert'
+  document.getElementById('input-observacoes').value = ''
+  document.getElementById('obs-char').textContent = '0'
+  document.getElementById('modal-observacoes').style.display = 'flex'
+
+  // Contador de caracteres
+  document.getElementById('input-observacoes').oninput = function() {
+    document.getElementById('obs-char').textContent = this.value.length
+    const cor = this.value.length >= 50 ? '#16a34a' : '#9b9b9b'
+    document.getElementById('obs-char').style.color = cor
+  }
+}
+
+function fecharModalObs() {
+  document.getElementById('modal-observacoes').style.display = 'none'
+}
+
+async function confirmarCheckout() {
+  const obs = document.getElementById('input-observacoes').value.trim()
+  const errEl = document.getElementById('obs-err')
+  errEl.className = 'alert'
+
+  if (obs.length < 50) {
+    errEl.textContent = `Relatório muito curto. Mínimo 50 caracteres (atual: ${obs.length}).`
+    errEl.className = 'alert alert-error show'
+    return
+  }
+
+  const btn = document.getElementById('btn-confirmar-checkout')
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
+
+  clearInterval(timerInterval)
+  const { error } = await sb.from('registros')
+    .update({ saida: new Date().toISOString(), observacoes: obs })
+    .eq('id', window._registroAtualId)
+
+  if (error) {
+    document.getElementById('obs-err').textContent = 'Erro ao salvar. Tente novamente.'
+    document.getElementById('obs-err').className = 'alert alert-error show'
+    btn.textContent = 'Encerrar estágio'; btn.disabled = false
+    return
+  }
+
+  emEstagio = false; entradaTime = null
+  document.getElementById('status-pill').className = 'status-pill out'
+  document.getElementById('status-dot').className = 'dot dot-gray'
+  document.getElementById('status-txt').textContent = 'Fora do estágio'
+  document.getElementById('timer-row').style.display = 'none'
+  document.getElementById('btn-checkin').textContent = 'Registrar entrada'
+  document.getElementById('btn-checkin').className = 'btn btn-primary'
+  document.getElementById('select-categoria-checkin').disabled = false
+  document.getElementById('select-categoria-checkin').style.opacity = '1'
+  document.getElementById('btn-corrigir-saida').style.display = 'none'
+
+  fecharModalObs()
+  toast('Estágio encerrado e relatório salvo!')
+  carregarRegistrosEst()
+  btn.textContent = 'Encerrar estágio'; btn.disabled = false
+}
 
 function abrirCorrecaoSaida() {
   document.getElementById('correcao-err').className = 'alert'
