@@ -328,6 +328,9 @@
           </select>
         </div>
         <button class="btn btn-primary" id="btn-checkin" onclick="toggleCheckin()">Registrar entrada</button>
+        <button class="btn btn-warning btn-full" id="btn-corrigir-saida" onclick="abrirCorrecaoSaida()" style="display:none;margin-top:8px;">
+          Esqueci de marcar a saída — corrigir
+        </button>
       </div>
       <div class="metrics">
         <div class="metric"><div class="metric-val" id="est-total">0h</div><div class="metric-label">No mês</div></div>
@@ -482,6 +485,28 @@
     <div style="display:flex;gap:8px;margin-top:.5rem;">
       <button class="btn btn-ghost" style="flex:1" onclick="fecharModalPerfil()">Cancelar</button>
       <button class="btn btn-primary" style="flex:1" onclick="salvarPerfil()" id="btn-salvar-perfil">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Correção de saída -->
+<div id="modal-correcao-saida" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:360px;margin:1rem;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:.5rem;">Corrigir horário de saída</h2>
+    <p style="font-size:13px;color:#9b9b9b;margin-bottom:1.25rem;">Informe o horário correto em que você saiu do estágio.</p>
+    <div class="alert alert-error" id="correcao-err"></div>
+    <div class="field">
+      <label>Data de saída</label>
+      <input type="date" id="input-data-saida"/>
+    </div>
+    <div class="field">
+      <label>Horário de saída</label>
+      <input type="time" id="input-hora-saida"/>
+    </div>
+    <div id="correcao-entrada-info" style="font-size:12px;color:#9b9b9b;margin-bottom:.875rem;background:#f5f4f0;border-radius:8px;padding:8px 12px;"></div>
+    <div style="display:flex;gap:8px;margin-top:.5rem;">
+      <button class="btn btn-ghost" style="flex:1" onclick="fecharCorrecaoSaida()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="salvarCorrecaoSaida()" id="btn-salvar-correcao">Salvar correção</button>
     </div>
   </div>
 </div>
@@ -769,6 +794,7 @@ async function verificarCheckinAberto() {
   document.getElementById('timer-row').style.display = 'block'
   document.getElementById('btn-checkin').textContent = 'Registrar saída'
   document.getElementById('btn-checkin').className = 'btn btn-danger btn-full'
+  document.getElementById('btn-corrigir-saida').style.display = 'block'
   // Travar select ao retomar check-in
   if (registro.categoria) {
     const sel = document.getElementById('select-categoria-checkin')
@@ -932,6 +958,7 @@ async function toggleCheckin() {
     // Travar select de categoria
     document.getElementById('select-categoria-checkin').disabled = true
     document.getElementById('select-categoria-checkin').style.opacity = '0.6'
+    document.getElementById('btn-corrigir-saida').style.display = 'block'
 
     timerInterval = setInterval(() => {
       const diff = Math.floor((Date.now() - entradaTime) / 1000)
@@ -953,6 +980,7 @@ async function toggleCheckin() {
     // Liberar select de categoria
     document.getElementById('select-categoria-checkin').disabled = false
     document.getElementById('select-categoria-checkin').style.opacity = '1'
+    document.getElementById('btn-corrigir-saida').style.display = 'none'
     toast('Saída registrada com sucesso!')
     carregarRegistrosEst()
   }
@@ -1550,6 +1578,83 @@ async function aprovarCadastro(uid, aprovar) {
     await carregarUsuario(data.session.user.id)
   }
 })()
+
+function abrirCorrecaoSaida() {
+  document.getElementById('correcao-err').className = 'alert'
+
+  // Preencher com data/hora atual como sugestão
+  const agora = new Date()
+  document.getElementById('input-data-saida').value = agora.toISOString().split('T')[0]
+  document.getElementById('input-hora-saida').value = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`
+  document.getElementById('input-data-saida').max = agora.toISOString().split('T')[0]
+
+  // Mostrar info da entrada
+  if (entradaTime) {
+    const entrada = new Date(entradaTime)
+    document.getElementById('correcao-entrada-info').textContent =
+      `Entrada registrada: ${entrada.toLocaleDateString('pt-BR')} às ${String(entrada.getHours()).padStart(2,'0')}:${String(entrada.getMinutes()).padStart(2,'0')}`
+  }
+
+  document.getElementById('modal-correcao-saida').style.display = 'flex'
+}
+
+function fecharCorrecaoSaida() {
+  document.getElementById('modal-correcao-saida').style.display = 'none'
+}
+
+async function salvarCorrecaoSaida() {
+  const dataSaida = document.getElementById('input-data-saida').value
+  const horaSaida = document.getElementById('input-hora-saida').value
+  const errEl = document.getElementById('correcao-err')
+  errEl.className = 'alert'
+
+  if (!dataSaida || !horaSaida) {
+    errEl.textContent = 'Preencha a data e horário de saída.'
+    errEl.className = 'alert alert-error show'
+    return
+  }
+
+  const saidaISO = new Date(`${dataSaida}T${horaSaida}:00`).toISOString()
+  const entradaDate = entradaTime ? new Date(entradaTime) : null
+
+  if (entradaDate && new Date(saidaISO) <= entradaDate) {
+    errEl.textContent = 'O horário de saída deve ser após o horário de entrada.'
+    errEl.className = 'alert alert-error show'
+    return
+  }
+
+  const btn = document.getElementById('btn-salvar-correcao')
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
+
+  const { error } = await sb.from('registros')
+    .update({ saida: saidaISO })
+    .eq('id', window._registroAtualId)
+
+  if (error) {
+    errEl.textContent = 'Erro ao salvar. Tente novamente.'
+    errEl.className = 'alert alert-error show'
+    btn.textContent = 'Salvar correção'; btn.disabled = false
+    return
+  }
+
+  // Resetar estado de check-in
+  clearInterval(timerInterval)
+  emEstagio = false; entradaTime = null
+  document.getElementById('status-pill').className = 'status-pill out'
+  document.getElementById('status-dot').className = 'dot dot-gray'
+  document.getElementById('status-txt').textContent = 'Fora do estágio'
+  document.getElementById('timer-row').style.display = 'none'
+  document.getElementById('btn-checkin').textContent = 'Registrar entrada'
+  document.getElementById('btn-checkin').className = 'btn btn-primary'
+  document.getElementById('select-categoria-checkin').disabled = false
+  document.getElementById('select-categoria-checkin').style.opacity = '1'
+  document.getElementById('btn-corrigir-saida').style.display = 'none'
+
+  fecharCorrecaoSaida()
+  toast('Saída corrigida com sucesso!')
+  carregarRegistrosEst()
+  btn.textContent = 'Salvar correção'; btn.disabled = false
+}
 
 async function salvarNovaSenha() {
   const nova = document.getElementById('input-nova-senha').value
