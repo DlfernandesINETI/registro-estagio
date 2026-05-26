@@ -954,13 +954,20 @@ async function carregarRegistrosEst() {
     const entStr = entrada ? `${pad(entrada.getHours())}:${pad(entrada.getMinutes())}` : '—'
     const saiStr = saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : 'Em andamento'
     const catStr = r.categoria ? r.categoria.replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·') : ''
-    return `<div class="reg-card">
-      <div>
-        <div class="reg-date">${dataStr}</div>
-        <div class="reg-time">${entStr} → ${saiStr}</div>
-        ${catStr ? `<div style="font-size:11px;color:#9b9b9b;margin-top:2px;">${catStr}</div>` : ''}
+    return `<div class="reg-card" style="flex-direction:column;align-items:stretch;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="reg-date">${dataStr}</div>
+          <div class="reg-time">${entStr} → ${saiStr}</div>
+          ${catStr ? `<div style="font-size:11px;color:#9b9b9b;margin-top:2px;">${catStr}</div>` : ''}
+        </div>
+        <div class="reg-hours">${dur ? minToHStr(dur) : '—'}${statusPill(r.status)}</div>
       </div>
-      <div class="reg-hours">${dur ? minToHStr(dur) : '—'}${statusPill(r.status)}</div>
+      ${r.observacoes ? `
+        <div style="background:#f5f4f0;border-radius:7px;padding:8px 10px;border-left:3px solid #f5c200;">
+          <div style="font-size:10px;font-weight:700;color:#9b9b9b;letter-spacing:.5px;margin-bottom:3px;">RELATÓRIO DE ATIVIDADES</div>
+          <div style="font-size:12px;color:#1a1a1a;line-height:1.5;">${r.observacoes}</div>
+        </div>` : ''}
     </div>`
   }).join('')
 
@@ -1158,11 +1165,17 @@ function renderSupervisor() {
       const entStr = entrada ? `${pad(entrada.getHours())}:${pad(entrada.getMinutes())}` : '—'
       const saiStr = saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : '—'
       const dur = r.duracao_minutos ? minToHStr(r.duracao_minutos) : '—'
+      const obsSupHtml = r.observacoes ? `
+        <div style="background:#f5f4f0;border-radius:7px;padding:8px 10px;border-left:3px solid #f5c200;margin-bottom:8px;">
+          <div style="font-size:10px;font-weight:700;color:#9b9b9b;letter-spacing:.5px;margin-bottom:3px;">RELATÓRIO DE ATIVIDADES</div>
+          <div style="font-size:12px;color:#1a1a1a;line-height:1.5;">${r.observacoes}</div>
+        </div>` : ''
       html += `<div class="reg-detail">
         <div class="reg-top">
           <div><div class="reg-date">${dataStr}</div><div class="reg-time">${entStr} → ${saiStr}</div></div>
           <div style="text-align:right"><div class="reg-hours">${dur}</div>${statusPill(r.status)}</div>
         </div>
+        ${obsSupHtml}
         <div class="btn-row">`
       if (r.status === 'pendente') {
         html += `<button class="btn btn-success" onclick="validar('${r.id}','aprovado')">Aprovar</button>
@@ -1211,24 +1224,30 @@ async function carregarCoord() {
   const fAluno = document.getElementById('coord-f-aluno').value
   const fStatus = document.getElementById('coord-f-status').value
 
-  // Buscar só alunos das categorias do coordenador
+  // Buscar alunos das categorias do coordenador
   const categoriasCoord = usuarioAtual.categorias || []
-  let alunosFiltradosIds = []
+  let todosAlunosCoord = []
   if (categoriasCoord.length > 0) {
     const { data: alunosCat } = await sb.from('usuarios')
-      .select('id')
+      .select('*')
       .eq('perfil', 'estagiario')
       .overlaps('categorias', categoriasCoord)
-    alunosFiltradosIds = (alunosCat || []).map(a => a.id)
+    todosAlunosCoord = alunosCat || []
   }
+  const alunosFiltradosIds = todosAlunosCoord.map(a => a.id)
 
-  let q = sb.from('registros').select('*, usuarios!registros_estagiario_id_fkey(id,nome,turma,perfil,local_estagio,supervisor_email)').order('entrada', { ascending: false })
-  if (alunosFiltradosIds.length > 0) q = q.in('estagiario_id', alunosFiltradosIds)
-  else if (categoriasCoord.length > 0) q = q.eq('estagiario_id', 'nenhum')
-  if (fAluno) q = q.eq('estagiario_id', fAluno)
-  if (fStatus) q = q.eq('status', fStatus)
-
-  const { data: regs } = await q
+  // Buscar registros desses alunos
+  let regs = []
+  if (alunosFiltradosIds.length > 0) {
+    let q = sb.from('registros')
+      .select('*, usuarios!registros_estagiario_id_fkey(id,nome,turma,perfil,local_estagio,supervisor_email)')
+      .order('entrada', { ascending: false })
+      .in('estagiario_id', alunosFiltradosIds)
+    if (fAluno) q = q.eq('estagiario_id', fAluno)
+    if (fStatus) q = q.eq('status', fStatus)
+    const { data: regsData } = await q
+    regs = regsData || []
+  }
   if (!regs) { lista.innerHTML = '<div class="empty">Nenhum registro.</div>'; return }
 
   registrosCoord = regs
@@ -1244,18 +1263,32 @@ async function carregarCoord() {
     if (supervisores) supervisores.forEach(s => { supervisoresMap[s.email] = s.nome })
   }
 
-  alunosCoord = ids.map(id => {
-    const r = regs.find(x => x.estagiario_id === id)
-    const supEmail = r.usuarios?.supervisor_email || ''
-    return {
-      id,
-      nome: r.usuarios?.nome || '—',
-      turma: r.usuarios?.turma || '—',
-      local: r.usuarios?.local_estagio || '',
-      supervisor_email: supEmail,
-      supervisor_nome: supervisoresMap[supEmail] || supEmail
-    }
-  })
+  // Combinar alunos com e sem registros
+  const idsComRegs = [...new Set(regs.map(r => r.estagiario_id))]
+  const idsSemRegs = todosAlunosCoord.filter(a => !idsComRegs.includes(a.id))
+
+  alunosCoord = [
+    ...ids.map(id => {
+      const r = regs.find(x => x.estagiario_id === id)
+      const supEmail = r?.usuarios?.supervisor_email || ''
+      return {
+        id,
+        nome: r?.usuarios?.nome || '—',
+        turma: r?.usuarios?.turma || '—',
+        local: r?.usuarios?.local_estagio || '',
+        supervisor_email: supEmail,
+        supervisor_nome: supervisoresMap[supEmail] || supEmail
+      }
+    }),
+    ...idsSemRegs.filter(a => !ids.includes(a.id)).map(a => ({
+      id: a.id,
+      nome: a.nome || '—',
+      turma: a.turma || '—',
+      local: a.local_estagio || '',
+      supervisor_email: a.supervisor_email || '',
+      supervisor_nome: supervisoresMap[a.supervisor_email] || a.supervisor_email || '—'
+    }))
+  ]
 
   // preencher select de alunos
   const sel = document.getElementById('coord-f-aluno')
@@ -1286,6 +1319,9 @@ async function carregarCoord() {
           </div>
       </div>
       <table><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Duração</th><th>Status</th></tr></thead><tbody>`
+    if (regsAluno.length === 0) {
+      html += `<tr><td colspan="5" style="text-align:center;color:#9b9b9b;padding:1rem;font-size:12px;">Nenhum registro ainda.</td></tr>`
+    }
     regsAluno.forEach(r => {
       const entrada = r.entrada ? new Date(r.entrada) : null
       const saida = r.saida ? new Date(r.saida) : null
@@ -1295,7 +1331,11 @@ async function carregarCoord() {
         <td>${saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : '—'}</td>
         <td>${r.duracao_minutos ? minToHStr(r.duracao_minutos) : '—'}</td>
         <td>${statusPill(r.status)}</td>
-      </tr>`
+      </tr>
+      ${r.observacoes ? `<tr><td colspan="5" style="padding:6px 1rem;background:#f5f4f0;border-bottom:1px solid #e5e3dc;">
+        <span style="font-size:10px;font-weight:700;color:#9b9b9b;letter-spacing:.5px;">RELATÓRIO: </span>
+        <span style="font-size:11px;color:#1a1a1a;line-height:1.5;">${r.observacoes}</span>
+      </td></tr>` : ''}`
     })
     html += `</tbody></table></div>`
   })
@@ -1541,27 +1581,49 @@ async function salvarPerfil() {
     updates.local_estagio = localSel === 'Outro' ? localOutro : localSel
 
     // Categorias
+    const catsAntigas = usuarioAtual.categorias || []
     const novasCats = Array.from(document.querySelectorAll('.perfil-cat:checked')).map(c => c.value)
+    const catsRemovidas = catsAntigas.filter(c => !novasCats.includes(c))
+    const catsAdicionadas = novasCats.filter(c => !catsAntigas.includes(c))
+
     updates.categorias = novasCats
     updates.turma = novasCats.length === 1 ? novasCats[0] : novasCats.join(' | ')
 
-    // Supervisores por categoria
+    // Supervisores por categoria — manter apenas das categorias ativas
+    let mapaAntigo = {}
+    try { mapaAntigo = JSON.parse(usuarioAtual.supervisores_categorias || '{}') } catch(e) {}
+
     const novoMapa = {}
+    // Manter supervisores de categorias que continuam
+    novasCats.forEach(cat => {
+      if (mapaAntigo[cat]) novoMapa[cat] = mapaAntigo[cat]
+    })
+    // Sobrescrever com o que foi digitado agora
     document.querySelectorAll('.perfil-sup-input').forEach(inp => {
       if (inp.value.trim()) novoMapa[inp.dataset.cat] = inp.value.trim()
     })
+    // Remover vínculos das categorias excluídas
+    catsRemovidas.forEach(cat => delete novoMapa[cat])
+
     const novoMapaStr = JSON.stringify(novoMapa)
 
-    // Verificar se supervisor mudou
-    let mapaAntigo = {}
-    try { mapaAntigo = JSON.parse(usuarioAtual.supervisores_categorias || '{}') } catch(e) {}
-    mudouSupervisor = JSON.stringify(mapaAntigo) !== novoMapaStr
+    // Verificar se supervisor ou categoria mudou
+    const mudouCategorias = catsRemovidas.length > 0 || catsAdicionadas.length > 0
+    mudouSupervisor = JSON.stringify(mapaAntigo) !== novoMapaStr || mudouCategorias
 
     updates.supervisores_categorias = novoMapaStr
     updates.supervisor_email = Object.values(novoMapa)[0] || null
 
-    // Se mudou supervisor, volta para pendente
+    // Se mudou supervisor ou categoria, volta para pendente
     if (mudouSupervisor) updates.aprovado = false
+
+    // Aviso sobre categorias removidas
+    if (catsRemovidas.length > 0) {
+      const nomesRemovidos = catsRemovidas.map(c =>
+        c.replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·')
+      ).join(', ')
+      console.log('Categorias removidas:', nomesRemovidos)
+    }
   }
 
   const { error } = await sb.from('usuarios').update(updates).eq('id', usuarioAtual.id)
@@ -1585,12 +1647,13 @@ async function salvarPerfil() {
   Object.assign(usuarioAtual, updates)
 
   if (mudouSupervisor) {
-    okEl.textContent = 'Perfil atualizado! Aguardando confirmação do novo supervisor.'
-    // Mostrar aviso pendente
+    okEl.textContent = 'Perfil atualizado! Aguardando confirmação do(s) supervisor(es).'
     const aviso = document.getElementById('aviso-pendente')
     if (aviso) aviso.style.display = 'flex'
+    popularSelectCategoria()
   } else {
     okEl.textContent = 'Perfil atualizado com sucesso!'
+    popularSelectCategoria()
   }
   okEl.className = 'alert alert-success show'
 
