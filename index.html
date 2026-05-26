@@ -515,6 +515,31 @@
       </div>
     </div>
 
+    <!-- Categorias do coordenador -->
+    <div id="perfil-secao-coord" style="display:none">
+      <div style="font-size:11px;font-weight:700;color:#9b9b9b;letter-spacing:1px;text-transform:uppercase;margin:.75rem 0;">Categorias que você coordena</div>
+      <div class="field">
+        <div style="border:1px solid #e5e3dc;border-radius:8px;background:#f5f4f0;overflow:hidden;">
+          <div style="padding:4px 8px;background:#e8e6e0;font-size:10px;font-weight:700;color:#6b6b6b;letter-spacing:1px;">LICENCIATURA</div>
+          <div style="padding:6px 8px;display:flex;flex-direction:column;gap:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat-coord" value="ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. I – Ed. Infantil e Anos Iniciais</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat-coord" value="ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. II – Anos Finais do EF</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat-coord" value="ESTÁGIO III – Licenciatura – Ensino Médio" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. III – Ensino Médio</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat-coord" value="ESTÁGIO IV – Licenciatura – Educação Especial" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. IV – Ed. Especial</label>
+          </div>
+          <div style="padding:4px 8px;background:#e8e6e0;font-size:10px;font-weight:700;color:#6b6b6b;letter-spacing:1px;">BACHARELADO</div>
+          <div style="padding:6px 8px;display:flex;flex-direction:column;gap:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat-coord" value="ESTÁGIO I – Bacharelado – Esporte" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. I – Esporte</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat-coord" value="ESTÁGIO II – Bacharelado – Condicionamento Físico" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. II – Condicionamento Físico</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat-coord" value="ESTÁGIO III – Bacharelado – Saúde e Lazer" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. III – Saúde e Lazer</label>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;margin-top:6px;">
+          ⚠️ Ao remover uma categoria você deixará de ver os alunos vinculados a ela.
+        </div>
+      </div>
+    </div>
+
     <div style="display:flex;gap:8px;margin-top:1rem;">
       <button class="btn btn-ghost" style="flex:1" onclick="fecharModalPerfil()">Cancelar</button>
       <button class="btn btn-primary" style="flex:1" onclick="salvarPerfil()" id="btn-salvar-perfil">Salvar alterações</button>
@@ -1495,7 +1520,16 @@ function abrirModalPerfil() {
   document.getElementById('perfil-confirma-senha').value = ''
 
   const isEst = usuarioAtual.perfil === 'estagiario'
+  const isCoord = usuarioAtual.perfil === 'coordenador'
   document.getElementById('perfil-secao-estagio').style.display = isEst ? 'block' : 'none'
+  document.getElementById('perfil-secao-coord').style.display = isCoord ? 'block' : 'none'
+
+  if (isCoord) {
+    const catsAtuais = usuarioAtual.categorias || []
+    document.querySelectorAll('.perfil-cat-coord').forEach(cb => {
+      cb.checked = catsAtuais.includes(cb.value)
+    })
+  }
 
   if (isEst) {
     document.getElementById('perfil-local').value = usuarioAtual.local_estagio || ''
@@ -1574,6 +1608,16 @@ async function salvarPerfil() {
 
   const updates = { nome, telefone: tel }
   let mudouSupervisor = false
+
+  if (usuarioAtual.perfil === 'coordenador') {
+    const novasCatsCoord = Array.from(document.querySelectorAll('.perfil-cat-coord:checked')).map(c => c.value)
+    if (novasCatsCoord.length === 0) {
+      errEl.textContent = 'Selecione ao menos uma categoria.'
+      errEl.className = 'alert alert-error show'
+      return
+    }
+    updates.categorias = novasCatsCoord
+  }
 
   if (usuarioAtual.perfil === 'estagiario') {
     const localSel = document.getElementById('perfil-local').value
