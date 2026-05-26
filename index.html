@@ -447,44 +447,77 @@
 
 <!-- Modal: Editar perfil -->
 <div id="modal-perfil" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:flex-start;justify-content:center;overflow-y:auto;padding:1rem;">
-  <div style="background:#fff;border-radius:12px;padding:1.75rem;width:100%;max-width:400px;margin:2rem auto;">
-    <h2 style="font-size:16px;font-weight:600;margin-bottom:1rem;">Editar perfil</h2>
+  <div style="background:#fff;border-radius:12px;padding:1.75rem;width:100%;max-width:420px;margin:2rem auto;">
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:.25rem;">Editar perfil</h2>
+    <p style="font-size:12px;color:#9b9b9b;margin-bottom:1.25rem;">Atualize seus dados para o novo ano de estágio</p>
     <div class="alert alert-error" id="perfil-err"></div>
     <div class="alert alert-success" id="perfil-ok"></div>
+
+    <!-- Dados básicos -->
+    <div style="font-size:11px;font-weight:700;color:#9b9b9b;letter-spacing:1px;text-transform:uppercase;margin-bottom:.75rem;">Dados pessoais</div>
     <div class="field"><label>Nome completo</label><input type="text" id="perfil-nome"/></div>
     <div class="field"><label>Telefone</label><input type="tel" id="perfil-tel"/></div>
-    <div class="field" id="perfil-field-turma" style="display:none">
-      <label>Turma</label>
-      <select id="perfil-turma">
-        <option value="">Selecione...</option>
-        <option>Bacharelado 1</option>
-        <option>Bacharelado 2</option>
-        <option>Licenciatura 1</option>
-        <option>Licenciatura 2</option>
-      </select>
+    <div class="field"><label>E-mail</label><input type="email" id="perfil-email" readonly style="opacity:.6;cursor:not-allowed;" title="Para alterar o e-mail entre em contato com a coordenação"/><div style="font-size:11px;color:#9b9b9b;margin-top:3px;">Para alterar o e-mail, fale com a coordenação.</div></div>
+
+    <!-- Trocar senha -->
+    <div style="font-size:11px;font-weight:700;color:#9b9b9b;letter-spacing:1px;text-transform:uppercase;margin:.75rem 0;">Alterar senha</div>
+    <div class="field"><label>Nova senha <span style="font-size:10px;color:#9b9b9b;">(deixe em branco para não alterar)</span></label><input type="password" id="perfil-nova-senha" placeholder="Mínimo 6 caracteres"/></div>
+    <div class="field"><label>Confirmar nova senha</label><input type="password" id="perfil-confirma-senha" placeholder="Repita a nova senha"/></div>
+
+    <!-- Dados do estágio — só para estagiário -->
+    <div id="perfil-secao-estagio" style="display:none">
+      <div style="font-size:11px;font-weight:700;color:#9b9b9b;letter-spacing:1px;text-transform:uppercase;margin:.75rem 0;">Dados do estágio</div>
+
+      <div class="field" id="perfil-field-local">
+        <label>Local de estágio</label>
+        <select id="perfil-local" onchange="toggleLocalOutroPerfil()">
+          <option value="">Selecione...</option>
+          <option>Escola</option>
+          <option>Academia</option>
+          <option>Clube esportivo</option>
+          <option>UBS / Saúde</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="field" id="perfil-field-local-outro" style="display:none">
+        <label>Qual local?</label>
+        <input type="text" id="perfil-local-outro" placeholder="Descreva o local"/>
+      </div>
+
+      <div class="field">
+        <label>Categoria(s) de estágio</label>
+        <div style="border:1px solid #e5e3dc;border-radius:8px;background:#f5f4f0;overflow:hidden;">
+          <div style="padding:4px 8px;background:#e8e6e0;font-size:10px;font-weight:700;color:#6b6b6b;letter-spacing:1px;">LICENCIATURA</div>
+          <div style="padding:6px 8px;display:flex;flex-direction:column;gap:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat" value="ESTÁGIO I – Licenciatura – Educação Infantil e Anos Iniciais do Ensino Fundamental" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. I – Ed. Infantil e Anos Iniciais</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat" value="ESTÁGIO II – Licenciatura – Anos Finais do Ensino Fundamental" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. II – Anos Finais do EF</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat" value="ESTÁGIO III – Licenciatura – Ensino Médio" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. III – Ensino Médio</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat" value="ESTÁGIO IV – Licenciatura – Educação Especial" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. IV – Ed. Especial</label>
+          </div>
+          <div style="padding:4px 8px;background:#e8e6e0;font-size:10px;font-weight:700;color:#6b6b6b;letter-spacing:1px;">BACHARELADO</div>
+          <div style="padding:6px 8px;display:flex;flex-direction:column;gap:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat" value="ESTÁGIO I – Bacharelado – Esporte" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. I – Esporte</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat" value="ESTÁGIO II – Bacharelado – Condicionamento Físico" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. II – Condicionamento Físico</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1a1a1a;cursor:pointer;"><input type="checkbox" class="perfil-cat" value="ESTÁGIO III – Bacharelado – Saúde e Lazer" style="accent-color:#f5c200;width:14px;height:14px;flex-shrink:0;"/> Est. III – Saúde e Lazer</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supervisores por categoria -->
+      <div class="field">
+        <label>Supervisor(es) por categoria</label>
+        <div id="perfil-campos-supervisores" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:11px;color:#9b9b9b;">Selecione as categorias acima para definir os supervisores.</div>
+        </div>
+        <div style="font-size:11px;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;margin-top:6px;">
+          ⚠️ Ao mudar o supervisor, o vínculo precisará ser confirmado novamente.
+        </div>
+      </div>
     </div>
-    <div class="field" id="perfil-field-local" style="display:none">
-      <label>Local de estágio</label>
-      <select id="perfil-local" onchange="toggleLocalOutroPerfil()">
-        <option value="">Selecione...</option>
-        <option>Escola</option>
-        <option>Academia</option>
-        <option>Clube esportivo</option>
-        <option>UBS / Saúde</option>
-        <option>Outro</option>
-      </select>
-    </div>
-    <div class="field" id="perfil-field-local-outro" style="display:none">
-      <label>Qual local?</label>
-      <input type="text" id="perfil-local-outro" placeholder="Descreva o local"/>
-    </div>
-    <div class="field" id="perfil-field-supervisor" style="display:none">
-      <label>E-mail do supervisor</label>
-      <input type="email" id="perfil-supervisor-email"/>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:.5rem;">
+
+    <div style="display:flex;gap:8px;margin-top:1rem;">
       <button class="btn btn-ghost" style="flex:1" onclick="fecharModalPerfil()">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1" onclick="salvarPerfil()" id="btn-salvar-perfil">Salvar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="salvarPerfil()" id="btn-salvar-perfil">Salvar alterações</button>
     </div>
   </div>
 </div>
@@ -1417,20 +1450,65 @@ function abrirModalPerfil() {
   document.getElementById('perfil-ok').className = 'alert'
   document.getElementById('perfil-nome').value = usuarioAtual.nome || ''
   document.getElementById('perfil-tel').value = usuarioAtual.telefone || ''
+  document.getElementById('perfil-email').value = usuarioAtual.email || ''
+  document.getElementById('perfil-nova-senha').value = ''
+  document.getElementById('perfil-confirma-senha').value = ''
 
   const isEst = usuarioAtual.perfil === 'estagiario'
-  document.getElementById('perfil-field-turma').style.display = isEst ? 'block' : 'none'
-  document.getElementById('perfil-field-local').style.display = isEst ? 'block' : 'none'
-  document.getElementById('perfil-field-supervisor').style.display = isEst ? 'block' : 'none'
+  document.getElementById('perfil-secao-estagio').style.display = isEst ? 'block' : 'none'
 
   if (isEst) {
-    document.getElementById('perfil-turma').value = usuarioAtual.turma || ''
     document.getElementById('perfil-local').value = usuarioAtual.local_estagio || ''
-    document.getElementById('perfil-supervisor-email').value = usuarioAtual.supervisor_email || ''
     toggleLocalOutroPerfil()
+
+    // Marcar categorias atuais
+    const catsAtuais = usuarioAtual.categorias || []
+    document.querySelectorAll('.perfil-cat').forEach(cb => {
+      cb.checked = catsAtuais.includes(cb.value)
+    })
+
+    // Popular supervisores atuais
+    atualizarSupervisoresPerfil()
+
+    // Ao mudar categorias atualizar supervisores
+    document.querySelectorAll('.perfil-cat').forEach(cb => {
+      cb.onchange = atualizarSupervisoresPerfil
+    })
   }
 
   document.getElementById('modal-perfil').style.display = 'flex'
+}
+
+function atualizarSupervisoresPerfil() {
+  const cats = Array.from(document.querySelectorAll('.perfil-cat:checked')).map(c => c.value)
+  const container = document.getElementById('perfil-campos-supervisores')
+  if (!container) return
+
+  if (cats.length === 0) {
+    container.innerHTML = '<div style="font-size:11px;color:#9b9b9b;">Selecione as categorias acima para definir os supervisores.</div>'
+    return
+  }
+
+  // Preservar emails já digitados e preencher com valores atuais
+  const emailsAtuais = {}
+  container.querySelectorAll('input[data-cat]').forEach(inp => {
+    emailsAtuais[inp.dataset.cat] = inp.value
+  })
+
+  // Buscar supervisores atuais do usuário
+  let mapaAtual = {}
+  try { mapaAtual = JSON.parse(usuarioAtual.supervisores_categorias || '{}') } catch(e) {}
+
+  container.innerHTML = cats.map(cat => {
+    const catShort = cat.replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·')
+    const emailAtual = emailsAtuais[cat] || mapaAtual[cat] || ''
+    return `<div>
+      <div style="font-size:11px;font-weight:500;color:#6b6b6b;margin-bottom:3px;">${catShort}</div>
+      <input type="email" data-cat="${cat}" class="perfil-sup-input" placeholder="supervisor@email.com"
+        value="${emailAtual}"
+        style="width:100%;padding:8px 12px;font-size:13px;border:1px solid #e5e3dc;border-radius:7px;background:#f5f4f0;color:#1a1a1a;"/>
+    </div>`
+  }).join('')
 }
 
 function fecharModalPerfil() {
@@ -1440,41 +1518,95 @@ function fecharModalPerfil() {
 async function salvarPerfil() {
   const nome = document.getElementById('perfil-nome').value.trim()
   const tel = document.getElementById('perfil-tel').value.trim()
-  document.getElementById('perfil-err').className = 'alert'
-  document.getElementById('perfil-ok').className = 'alert'
+  const novaSenha = document.getElementById('perfil-nova-senha').value
+  const confirmaSenha = document.getElementById('perfil-confirma-senha').value
+  const errEl = document.getElementById('perfil-err')
+  const okEl = document.getElementById('perfil-ok')
+  errEl.className = 'alert'
+  okEl.className = 'alert'
 
-  if (!nome) {
-    document.getElementById('perfil-err').textContent = 'O nome não pode ficar vazio.'
-    document.getElementById('perfil-err').className = 'alert alert-error show'
-    return
-  }
+  if (!nome) { errEl.textContent = 'O nome não pode ficar vazio.'; errEl.className = 'alert alert-error show'; return }
+  if (novaSenha && novaSenha.length < 6) { errEl.textContent = 'A nova senha deve ter pelo menos 6 caracteres.'; errEl.className = 'alert alert-error show'; return }
+  if (novaSenha && novaSenha !== confirmaSenha) { errEl.textContent = 'As senhas não coincidem.'; errEl.className = 'alert alert-error show'; return }
 
   const btn = document.getElementById('btn-salvar-perfil')
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
 
   const updates = { nome, telefone: tel }
+  let mudouSupervisor = false
 
   if (usuarioAtual.perfil === 'estagiario') {
     const localSel = document.getElementById('perfil-local').value
     const localOutro = document.getElementById('perfil-local-outro').value.trim()
-    updates.turma = document.getElementById('perfil-turma').value
     updates.local_estagio = localSel === 'Outro' ? localOutro : localSel
-    updates.supervisor_email = document.getElementById('perfil-supervisor-email').value.trim()
+
+    // Categorias
+    const novasCats = Array.from(document.querySelectorAll('.perfil-cat:checked')).map(c => c.value)
+    updates.categorias = novasCats
+    updates.turma = novasCats.length === 1 ? novasCats[0] : novasCats.join(' | ')
+
+    // Supervisores por categoria
+    const novoMapa = {}
+    document.querySelectorAll('.perfil-sup-input').forEach(inp => {
+      if (inp.value.trim()) novoMapa[inp.dataset.cat] = inp.value.trim()
+    })
+    const novoMapaStr = JSON.stringify(novoMapa)
+
+    // Verificar se supervisor mudou
+    let mapaAntigo = {}
+    try { mapaAntigo = JSON.parse(usuarioAtual.supervisores_categorias || '{}') } catch(e) {}
+    mudouSupervisor = JSON.stringify(mapaAntigo) !== novoMapaStr
+
+    updates.supervisores_categorias = novoMapaStr
+    updates.supervisor_email = Object.values(novoMapa)[0] || null
+
+    // Se mudou supervisor, volta para pendente
+    if (mudouSupervisor) updates.aprovado = false
   }
 
   const { error } = await sb.from('usuarios').update(updates).eq('id', usuarioAtual.id)
 
   if (error) {
-    document.getElementById('perfil-err').textContent = 'Erro ao salvar. Tente novamente.'
-    document.getElementById('perfil-err').className = 'alert alert-error show'
-  } else {
-    Object.assign(usuarioAtual, updates)
-    document.getElementById('perfil-ok').textContent = 'Perfil atualizado com sucesso!'
-    document.getElementById('perfil-ok').className = 'alert alert-success show'
-    setTimeout(() => fecharModalPerfil(), 1500)
-    toast('Perfil atualizado!')
+    errEl.textContent = 'Erro ao salvar. Tente novamente.'
+    errEl.className = 'alert alert-error show'
+    btn.textContent = 'Salvar alterações'; btn.disabled = false
+    return
   }
-  btn.textContent = 'Salvar'; btn.disabled = false
+
+  // Atualizar senha se informada
+  if (novaSenha) {
+    const { error: senhaErr } = await sb.auth.updateUser({ password: novaSenha })
+    if (senhaErr) {
+      errEl.textContent = 'Dados salvos, mas erro ao atualizar senha. Tente pelo "Esqueci minha senha".'
+      errEl.className = 'alert alert-error show'
+    }
+  }
+
+  Object.assign(usuarioAtual, updates)
+
+  if (mudouSupervisor) {
+    okEl.textContent = 'Perfil atualizado! Aguardando confirmação do novo supervisor.'
+    // Mostrar aviso pendente
+    const aviso = document.getElementById('aviso-pendente')
+    if (aviso) aviso.style.display = 'flex'
+  } else {
+    okEl.textContent = 'Perfil atualizado com sucesso!'
+  }
+  okEl.className = 'alert alert-success show'
+
+  // Atualizar nome na topbar
+  if (usuarioAtual.perfil === 'estagiario') {
+    document.getElementById('est-nome').textContent = usuarioAtual.nome
+    popularSelectCategoria()
+  } else if (usuarioAtual.perfil === 'supervisor') {
+    document.getElementById('sup-nome').textContent = usuarioAtual.nome
+  } else {
+    document.getElementById('coord-nome').textContent = usuarioAtual.nome
+  }
+
+  toast(mudouSupervisor ? 'Perfil atualizado! Novo supervisor deve confirmar.' : 'Perfil atualizado!')
+  setTimeout(() => fecharModalPerfil(), 2000)
+  btn.textContent = 'Salvar alterações'; btn.disabled = false
 }
 
 // ═══════════════════════════════════════════
