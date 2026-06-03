@@ -1328,7 +1328,10 @@ async function carregarCoord() {
   document.getElementById('coord-pend').textContent = regs.filter(r => r.status === 'pendente').length
 
   let html = ''
-  alunosCoord.forEach(aluno => {
+  // Respeitar filtro de aluno na tela
+  const alunosVisiveis = fAluno ? alunosCoord.filter(a => a.id === fAluno) : alunosCoord
+
+  alunosVisiveis.forEach(aluno => {
     const regsAluno = regs.filter(r => r.estagiario_id === aluno.id)
     const aprovMin = regsAluno.filter(r => r.status === 'aprovado').reduce((s,r) => s+(r.duracao_minutos||0), 0)
     html += `<div class="aluno-card-coord">
