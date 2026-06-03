@@ -568,6 +568,20 @@
     </div>
 
     <div class="field">
+      <label>Tipo de atividade *</label>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;background:#f5f4f0;border:1px solid #e5e3dc;border-radius:8px;padding:10px 12px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#1a1a1a;cursor:pointer;">
+          <input type="checkbox" class="tipo-atividade" value="Orientação" style="accent-color:#f5c200;width:15px;height:15px;"/> Orientação
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#1a1a1a;cursor:pointer;">
+          <input type="checkbox" class="tipo-atividade" value="Participação" style="accent-color:#f5c200;width:15px;height:15px;"/> Participação
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#1a1a1a;cursor:pointer;">
+          <input type="checkbox" class="tipo-atividade" value="Intervenção" style="accent-color:#f5c200;width:15px;height:15px;"/> Intervenção
+        </label>
+      </div>
+    </div>
+    <div class="field">
       <label>Relatório de atividades *</label>
       <textarea id="input-observacoes" rows="6"
         placeholder="Descreva as atividades desenvolvidas, conteúdos trabalhados, observações relevantes e aprendizados do dia..."
@@ -599,6 +613,29 @@
       <input type="time" id="input-hora-saida"/>
     </div>
     <div id="correcao-entrada-info" style="font-size:12px;color:#9b9b9b;margin-bottom:.875rem;background:#f5f4f0;border-radius:8px;padding:8px 12px;"></div>
+    <div class="field">
+      <label>Tipo de atividade *</label>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;background:#f5f4f0;border:1px solid #e5e3dc;border-radius:8px;padding:10px 12px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#1a1a1a;cursor:pointer;">
+          <input type="checkbox" class="tipo-atividade-correcao" value="Orientação" style="accent-color:#f5c200;width:15px;height:15px;"/> Orientação
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#1a1a1a;cursor:pointer;">
+          <input type="checkbox" class="tipo-atividade-correcao" value="Participação" style="accent-color:#f5c200;width:15px;height:15px;"/> Participação
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#1a1a1a;cursor:pointer;">
+          <input type="checkbox" class="tipo-atividade-correcao" value="Intervenção" style="accent-color:#f5c200;width:15px;height:15px;"/> Intervenção
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <label>Relatório de atividades <span style="font-size:10px;color:#9b9b9b;">(obrigatório)</span></label>
+      <textarea id="input-obs-correcao" rows="4"
+        placeholder="Descreva as atividades desenvolvidas, conteúdos trabalhados, observações relevantes e aprendizados do dia..."
+        style="width:100%;padding:10px 12px;font-size:13px;border:1px solid #e5e3dc;border-radius:8px;background:#f5f4f0;color:#1a1a1a;resize:vertical;font-family:inherit;line-height:1.6;"></textarea>
+      <div style="font-size:11px;color:#9b9b9b;margin-top:4px;text-align:right;">
+        <span id="correcao-obs-char">0</span> caracteres (mínimo 50)
+      </div>
+    </div>
     <div style="display:flex;gap:8px;margin-top:.5rem;">
       <button class="btn btn-ghost" style="flex:1" onclick="fecharCorrecaoSaida()">Cancelar</button>
       <button class="btn btn-primary" style="flex:1" onclick="salvarCorrecaoSaida()" id="btn-salvar-correcao">Salvar correção</button>
@@ -979,12 +1016,14 @@ async function carregarRegistrosEst() {
     const entStr = entrada ? `${pad(entrada.getHours())}:${pad(entrada.getMinutes())}` : '—'
     const saiStr = saida ? `${pad(saida.getHours())}:${pad(saida.getMinutes())}` : 'Em andamento'
     const catStr = r.categoria ? r.categoria.replace('ESTÁGIO', 'Est.').replace('– Licenciatura –', '·').replace('– Bacharelado –', '·') : ''
+    const tipoStr = r.tipo_atividade ? r.tipo_atividade : ''
     return `<div class="reg-card" style="flex-direction:column;align-items:stretch;gap:8px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
           <div class="reg-date">${dataStr}</div>
           <div class="reg-time">${entStr} → ${saiStr}</div>
           ${catStr ? `<div style="font-size:11px;color:#9b9b9b;margin-top:2px;">${catStr}</div>` : ''}
+        ${tipoStr ? `<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap;">${tipoStr.split(', ').map(t => `<span style="font-size:10px;background:#eff4ff;color:#1a6ef5;border:1px solid #bfdbfe;border-radius:999px;padding:1px 7px;">${t}</span>`).join('')}</div>` : ''}
         </div>
         <div class="reg-hours">${dur ? minToHStr(dur) : '—'}${statusPill(r.status)}</div>
       </div>
@@ -1869,6 +1908,7 @@ function abrirModalObs() {
 
 function fecharModalObs() {
   document.getElementById('modal-observacoes').style.display = 'none'
+  document.querySelectorAll('.tipo-atividade').forEach(c => c.checked = false)
 }
 
 async function confirmarCheckout() {
@@ -1876,6 +1916,12 @@ async function confirmarCheckout() {
   const errEl = document.getElementById('obs-err')
   errEl.className = 'alert'
 
+  const tipos = Array.from(document.querySelectorAll('.tipo-atividade:checked')).map(c => c.value)
+  if (tipos.length === 0) {
+    errEl.textContent = 'Selecione ao menos um tipo de atividade.'
+    errEl.className = 'alert alert-error show'
+    return
+  }
   if (obs.length < 50) {
     errEl.textContent = `Relatório muito curto. Mínimo 50 caracteres (atual: ${obs.length}).`
     errEl.className = 'alert alert-error show'
@@ -1887,7 +1933,7 @@ async function confirmarCheckout() {
 
   clearInterval(timerInterval)
   const { error } = await sb.from('registros')
-    .update({ saida: new Date().toISOString(), observacoes: obs })
+    .update({ saida: new Date().toISOString(), observacoes: obs, tipo_atividade: tipos.join(', ') })
     .eq('id', window._registroAtualId)
 
   if (error) {
@@ -1930,6 +1976,15 @@ function abrirCorrecaoSaida() {
       `Entrada registrada: ${entrada.toLocaleDateString('pt-BR')} às ${String(entrada.getHours()).padStart(2,'0')}:${String(entrada.getMinutes()).padStart(2,'0')}`
   }
 
+  // Preencher obs se já existir
+  document.getElementById('input-obs-correcao').value = ''
+  document.getElementById('correcao-obs-char').textContent = '0'
+  document.querySelectorAll('.tipo-atividade-correcao').forEach(c => c.checked = false)
+  document.getElementById('correcao-obs-char').style.color = '#9b9b9b'
+  document.getElementById('input-obs-correcao').oninput = function() {
+    document.getElementById('correcao-obs-char').textContent = this.value.length
+    document.getElementById('correcao-obs-char').style.color = this.value.length >= 50 ? '#16a34a' : '#9b9b9b'
+  }
   document.getElementById('modal-correcao-saida').style.display = 'flex'
 }
 
@@ -1940,11 +1995,23 @@ function fecharCorrecaoSaida() {
 async function salvarCorrecaoSaida() {
   const dataSaida = document.getElementById('input-data-saida').value
   const horaSaida = document.getElementById('input-hora-saida').value
+  const obsCorrecao = document.getElementById('input-obs-correcao').value.trim()
   const errEl = document.getElementById('correcao-err')
   errEl.className = 'alert'
 
   if (!dataSaida || !horaSaida) {
     errEl.textContent = 'Preencha a data e horário de saída.'
+    errEl.className = 'alert alert-error show'
+    return
+  }
+  const tiposCorrecao = Array.from(document.querySelectorAll('.tipo-atividade-correcao:checked')).map(c => c.value)
+  if (tiposCorrecao.length === 0) {
+    errEl.textContent = 'Selecione ao menos um tipo de atividade.'
+    errEl.className = 'alert alert-error show'
+    return
+  }
+  if (obsCorrecao.length < 50) {
+    errEl.textContent = `Relatório muito curto. Mínimo 50 caracteres (atual: ${obsCorrecao.length}).`
     errEl.className = 'alert alert-error show'
     return
   }
@@ -1962,7 +2029,7 @@ async function salvarCorrecaoSaida() {
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
 
   const { error } = await sb.from('registros')
-    .update({ saida: saidaISO })
+    .update({ saida: saidaISO, observacoes: obsCorrecao, tipo_atividade: tiposCorrecao.join(', ') })
     .eq('id', window._registroAtualId)
 
   if (error) {
