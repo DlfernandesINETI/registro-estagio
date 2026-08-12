@@ -1932,8 +1932,18 @@ async function confirmarCheckout() {
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
 
   clearInterval(timerInterval)
+  const saidaAgora = new Date()
+  const duracaoMin = entradaTime
+    ? Math.round((saidaAgora - new Date(entradaTime)) / 60000)
+    : null
+
   const { error } = await sb.from('registros')
-    .update({ saida: new Date().toISOString(), observacoes: obs, tipo_atividade: tipos.join(', ') })
+    .update({
+      saida: saidaAgora.toISOString(),
+      duracao_minutos: duracaoMin,
+      observacoes: obs,
+      tipo_atividade: tipos.join(', ')
+    })
     .eq('id', window._registroAtualId)
 
   if (error) {
@@ -2028,8 +2038,20 @@ async function salvarCorrecaoSaida() {
   const btn = document.getElementById('btn-salvar-correcao')
   btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true
 
+  // Calcular duração correta em minutos
+  const entradaOriginal = entradaTime ? new Date(entradaTime) : null
+  const saidaCorrigida = new Date(saidaISO)
+  const duracaoCorrigidaMin = entradaOriginal
+    ? Math.round((saidaCorrigida - entradaOriginal) / 60000)
+    : null
+
   const { error } = await sb.from('registros')
-    .update({ saida: saidaISO, observacoes: obsCorrecao, tipo_atividade: tiposCorrecao.join(', ') })
+    .update({
+      saida: saidaISO,
+      duracao_minutos: duracaoCorrigidaMin,
+      observacoes: obsCorrecao,
+      tipo_atividade: tiposCorrecao.join(', ')
+    })
     .eq('id', window._registroAtualId)
 
   if (error) {
